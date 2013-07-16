@@ -1,0 +1,8 @@
+argparse==1.2.1
+bottle==0.11.6
+distribute==0.6.24
+gunicorn==0.17.4
+wsgiref==0.1.2
+couchdb>=0.9
+WebTest>=2.0
+nose==1.1.2

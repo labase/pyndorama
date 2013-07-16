@@ -1,0 +1,78 @@
+body {
+	/* background-image: url("parch_backa.jpg");*/
+	margin-top: -10px;
+	background-repeat: no-repeat;
+	background-position: center -30px;
+	background-image: url("open-book.jpg");
+}
+#book {
+	/* background-image: url("parch_backa.jpg");*/
+	width: 1100px;
+	height: 600px;
+	/* padding: 10px;*/
+	margin-top: 100px;
+	margin-bottom: 20px;
+	margin-right: auto;
+	margin-left: auto;
+	/* opera does not like 'margin:20px auto' */
+	text-align:left;
+	/* background-image: url("parch_backa.jpg");*/
+}
+
+#frame {
+	margin: 0px;
+	frameBorder: 0px;
+	background-color: transparent;
+	/* background-image: url("parch_backa.jpg");
+background: #666;
+	width: 46%; ie5win fudge ends */
+	}
+#fleet {
+	margin: 20px;
+	float: left;
+	position: relative;
+	width: 160px;
+	}
+
+#subtext {
+	position: relative;
+	top: 400px;
+	right: 0px;
+	padding: 10px 2% 10px 2%;
+	margin: 0px;
+	border: 0px;
+	width: 500px;
+	/* background-color: transparent;*/
+	background-color: navajowhite;
+	/* background-image: url("parch_backa.jpg");
+background: #666;
+	width: 46%; ie5win fudge ends */
+	}
+
+
+#text {
+	position: relative;
+	top: 0px;
+	left: 0px;
+	padding: 10px 2% 10px 2%;
+	margin: 0px;
+	border: 0px;
+	width: 30%;
+	background-color: transparent;
+	/* background-image: url("parch_backa.jpg");
+background: #666;
+	width: 46%; ie5win fudge ends */
+	}
+
+#illumini {
+	position: relative;
+	top: 0px;
+	right: 0px; /* Opera5.02 will show a
+	space at right when there is no scroll bar */
+	padding: 10px 2% 10px 2%;
+	margin: 0px;
+	border: 0px;
+	width: 70%;
+	background-color: transparent;
+	/* background: #666; */
+	}
