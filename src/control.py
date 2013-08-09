@@ -13,10 +13,6 @@ Pyndorama - Principal
 """
 from visual import Visual
 
-CUBE = """beleza conforto valor atendimento numerorevenda poderrevenda
-valordaspecas valormanutencao gasto economia esporte conforto""".split()
-FACE= ["memit/%s.png"%face for face in CUBE]
-
 class Main:
     """Game base with board and pieces."""
     def __init__(self, visual):

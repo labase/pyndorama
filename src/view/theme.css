@@ -21,7 +21,6 @@ body {
 
 #frame {
 	margin: 0px;
-	frameBorder: 0px;
 	background-color: transparent;
 	/* background-image: url("parch_backa.jpg");
 background: #666;
@@ -36,7 +35,8 @@ background: #666;
 
 #subtext {
 	position: relative;
-	top: 400px;
+	float:right;
+	top: 20px;
 	right: 0px;
 	padding: 10px 2% 10px 2%;
 	margin: 0px;
@@ -51,6 +51,7 @@ background: #666;
 
 
 #text {
+	float:left;
 	position: relative;
 	top: 0px;
 	left: 0px;
@@ -72,7 +73,9 @@ background: #666;
 	padding: 10px 2% 10px 2%;
 	margin: 0px;
 	border: 0px;
-	width: 70%;
+	width: 50%;
 	background-color: transparent;
+	float:right;
+	text-align: right
 	/* background: #666; */
 	}
