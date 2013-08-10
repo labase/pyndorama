@@ -17,10 +17,11 @@ REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
 
+
 class Visual:
     """ Builder creating SVG elements and placeholder groups. :ref:`visual`
     """
-    def __init__(self,doc, svg, html, ajax):
+    def __init__(self, doc, svg, html, ajax):
         self.doc, self.svg, self.html, self.ajax = doc, svg, html, ajax
         print(1)
         self.book = doc["book"]
@@ -29,7 +30,7 @@ class Visual:
         self.illumini = doc["illumini"]
 
     def _on_sent(self, req):
-        if req.status==200 or req.status==0:
+        if req.status == 200 or req.status == 0:
             self.doc["result"].html = req.text
         else:
             self.doc["result"].html = "error "+req.text
@@ -38,12 +39,12 @@ class Visual:
         req = self.ajax()
         #req.on_complete = on_complete
         #req.set_timeout(timeout,err_msg)
-        req.open('POST',url,True)
-        req.set_header('content-type','application/x-www-form-urlencoded')
+        req.open('POST', url, True)
+        req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
     def build_ship(self, place):
-        shipyard = self.html.IMG(width = 20, src = SHIP)
+        shipyard = self.html.IMG(width=20, src=SHIP)
         place <= shipyard
         return shipyard
 
@@ -62,21 +63,19 @@ class Visual:
         #fleet = self.html.DIV(margin = "20px", Float = "left",
         #    width = "%dpx"%40*size, position = "relative")
         #fleet_style = dict(width="%dpx" % 40 * size)
-        fleet = self.html.DIV(Class = "fleet")#, style = fleet_style)
+        fleet = self.html.DIV(Class="fleet")  # , style = fleet_style)
         #fleet = self.doc["f%d" % convoy]
-        ships = [self.build_ship(fleet) for ship in range(size)]
+        self.ships = [self.build_ship(fleet) for ship in range(size)]
         self.subtext <= fleet
         #self.book <= fleet
         return fleet
 
     def build_book(self):
-        text = self.html.IFRAME(width=450, height=600,
-                        Class="frame", frameBorder=0, src="view/battle.html")
+        text = self.html.IFRAME(width=450, height=600, Class="frame",
+                                frameBorder=0, src="view/battle.html")
         print(20)
         self.text <= text
-        illumini = self.html.IMG(width = 500, src = IMG)
+        illumini = self.html.IMG(width=500, src=IMG)
         self.illumini <= illumini
         self.fleet = [self.build_convoy(convoy, 4) for convoy in range(6)]
         self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
-
-

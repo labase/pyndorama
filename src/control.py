@@ -13,20 +13,20 @@ Pyndorama - Principal
 """
 from visual import Visual
 
+
 class Main:
     """Game base with board and pieces."""
     def __init__(self, visual):
         """Constroi a casa que indica a peca que foi selecionada. """
         self.visual = visual
 
-    def build_book(self,visual):
+    def build_book(self, visual):
         """Constroi as partes do Jogo. """
         visual.build_book()
 
 
 def main(doc, svg, html, ajax):
-  print('Pyndorama 0.1.0')
-  visual = Visual(doc, svg, html, ajax)
-  app =  Main(visual)
-  app.build_book(visual)
-
+    print('Pyndorama 0.1.0')
+    visual = Visual(doc, svg, html, ajax)
+    app = Main(visual)
+    app.build_book(visual)

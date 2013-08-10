@@ -8,7 +8,7 @@ Time-Web - Main
 :Author: *Carlo E. T. Oliveira*
 :Author: *Erica Nogueira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/05/24
+:Date: 2013/08/10
 :Status: This is a "work in progress"
 :Revision: 0.1.0
 :Home: `Labase <http://labase.selfip.org/>`__
@@ -21,7 +21,7 @@ _DOCBASES = ['keystore']
 class Activ(Server):
     "Active database"
     keystore = {}
-    
+
     def __init__(self, url=None):
         Server.__init__(self)
         act = self
