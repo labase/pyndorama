@@ -5,9 +5,9 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/07/16 $
+:Date: $Date: 2013/08/11 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.1 $
+:Revision: $Revision: 0.2 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
@@ -21,9 +21,13 @@ SHIP = 'view/Trireme_1.png'
 class Visual:
     """ Builder creating SVG elements and placeholder groups. :ref:`visual`
     """
-    def __init__(self, doc, svg, html, ajax):
-        self.doc, self.svg, self.html, self.ajax = doc, svg, html, ajax
+    def __init__(self, doc, svg, html, ajax, win):
+        self.doc, self.svg, self.html, self.ajax, self.win = doc, svg, html, ajax, win
         print(1)
+        #args = win.location.search[1:]
+        #self.args = {k: v for k, v in [c.split('=') for c in args.split('&')]}
+        self.doc_id = doc["doc_id"]
+
         self.book = doc["book"]
         self.text = doc["text"]
         self.subtext = doc["subtext"]
@@ -44,38 +48,66 @@ class Visual:
         req.send(data)
 
     def build_ship(self, place):
-        shipyard = self.html.IMG(width=20, src=SHIP)
-        place <= shipyard
-        return shipyard
+        return self.gui.img(place=place, width=20, src=SHIP)
 
     def build_cell(self, place, name):
         S = 10
         SS = 9
         x, y = 1100 - 120 + (name % 50) * S, 100 + (name // 50) * S
-        stl = dict(position="absolute", width="%dpx" % SS, height="%dpx" % SS,
-                   opacity=0.5, top=y, left=x, backgroundColor="navajowhite")
-        cell = self.html.DIV(style=stl)
-        place <= cell
-        return cell
+        #stl = dict(position="absolute", width="%dpx" % SS, height="%dpx" % SS,
+        #           opacity=0.5, top=y, left=x, backgroundColor="navajowhite")
+        #cell = self.html.DIV(style=stl)
+        #place <= cell
+        return self.gui.div(
+            place=place, o_position="absolute", o_width="%dpx" % SS, o_height="%dpx" % SS,
+            o_opacity=0.5, o_top=y, o_left=x, o_backgroundColor="navajowhite")
 
     def build_convoy(self, convoy, size):
-        #fleet = self.html.DIV(style="margin: 10px;")
-        #fleet = self.html.DIV(margin = "20px", Float = "left",
-        #    width = "%dpx"%40*size, position = "relative")
-        #fleet_style = dict(width="%dpx" % 40 * size)
-        fleet = self.html.DIV(Class="fleet")  # , style = fleet_style)
-        #fleet = self.doc["f%d" % convoy]
+        fleet = self.gui.div(place=self.subtext, Class="fleet")
         self.ships = [self.build_ship(fleet) for ship in range(size)]
-        self.subtext <= fleet
-        #self.book <= fleet
         return fleet
 
-    def build_book(self):
-        text = self.html.IFRAME(width=450, height=600, Class="frame",
-                                frameBorder=0, src="view/battle.html")
-        print(20)
-        self.text <= text
-        illumini = self.html.IMG(width=500, src=IMG)
-        self.illumini <= illumini
+    def build_book(self, gui):
+        self.gui = gui
+        gui.iframe(place=self.text, width=450, height=600, Class="frame",
+                   frameBorder=0, src="view/battle.html")
+        gui.img(place=self.illumini, width=500, src=IMG)
         self.fleet = [self.build_convoy(convoy, 4) for convoy in range(6)]
         self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
+
+
+class Gui:
+    """ Builder creating HTML, SVG elements and placeholder groups. :ref:`visual`
+    """
+    def __init__(self, doc, svg, html, ajax, win):
+        self.doc, self.svg, self.html = doc, svg, html
+        self.ajax, self.win = ajax, win
+        self.main = doc["base"]
+
+    def _locate(self, place, element):
+        locus = place if place else self.main
+        locus <= element
+        return element
+
+    def _filter(self, args):
+        #print(args)
+        return {k[2:]: value for k, value in args.items() if "o_" in k}
+
+    def div(self, place=None, Class=None, **kwargs):
+        #print(self._filter(kwargs))
+        return self._locate(place, self.html.DIV(
+            Class=Class, style=self._filter(kwargs)))
+
+    def iframe(
+        self, place=None, width=10, height=10, Class="frame",
+            frameBorder=0, src="", **kwarg):
+        """Html iframe."""
+        return self._locate(place, self.html.IFRAME(
+            width=width, height=height, Class=Class,
+            frameBorder=frameBorder, src=src))
+
+    def img(
+            self, place=None, width=None, height=None, Class=None, src="", **k):
+        """Html image. """
+        return self._locate(place, self.html.IMG(
+            width=width, height=height, Class=Class, src=src))

@@ -29,7 +29,7 @@ Pyndorama - Educational game creation
             import svg
             import html
             #import time
-            main(doc, svg, html, ajax)
+            main(doc, svg, html, ajax, win)
         </script>
     </head>
     <body onLoad="brython(1)" class="main">

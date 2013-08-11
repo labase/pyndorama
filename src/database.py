@@ -18,6 +18,7 @@ from couchdb import Server
 
 _DOCBASES = ['keystore']
 
+
 class Activ(Server):
     "Active database"
     keystore = {}
@@ -44,3 +45,13 @@ try:
 except Exception:
     DRECORD = None
 
+
+if __name__ == "__main__":
+    #print([rec for rec in DRECORD])
+    recs = {n: rec for n, rec in enumerate(DRECORD)}
+    print (recs)
+    ques = str(input("apaga?('apaga'/<indice>)"))
+    if ques == 'apaga':
+        __ACTIV.erase_database()
+    elif int(ques) in recs:
+        print (DRECORD[recs[int(ques)]])

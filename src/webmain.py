@@ -22,8 +22,8 @@ import json
 DIR = os.path.dirname(__file__)+'/'
 ADM, HEA, PEC, PHA, END = 'adm1n head peca fase fim'.split()
 
-LIBS = DIR + '../libs/lib'
-IMGS = DIR + 'studio/memit'
+#LIBS = DIR + '../libs/lib'
+IMGS = DIR + 'view/'
 
 
 @route('/')
@@ -41,11 +41,11 @@ def main():
 def html(filename):
     return static_file(filename, root=DIR)
 
-
-@get('/<filename:re:.*\.js>')
-def javascript(filename):
-    print(filename, '../libs/lib')
-    return static_file(filename, root=LIBS)
+#
+#@get('/<filename:re:.*\.js>')
+#def javascript(filename):
+#    print(filename, '../libs/lib')
+#    return static_file(filename, root=LIBS)
 
 
 @get('/<filename:re:.*\.py>')
@@ -55,6 +55,12 @@ def python(filename):
 
 @get('/<filename:re:.*\.(jpg|png|gif|ico)>')
 def imagepng(filename):
+    return static_file(filename, root=DIR)
+
+
+@get('/<filename:re:.*\.css>')
+def stylecss(filename):
+    print(filename, IMGS)
     return static_file(filename, root=DIR)
 
 
@@ -79,14 +85,15 @@ def store():
         record_id = json.keys()[0]
         print(json[record_id], record_id)
         record = database.DRECORD[record_id]
-        record[HEA]=json[record_id]
-        record[PEC]=[]
-        record[PHA]=[]
+        record[HEA] = json[record_id]
+        record[PEC] = []
+        record[PHA] = []
         database.DRECORD[record_id] = record
-        print('record:',database.DRECORD[record_id])
-        return dict(doc_id = record_id)
+        print('record:', database.DRECORD[record_id])
+        return dict(doc_id=record_id)
     except Exception:
-        return "Cabeçalho não foi gravado %s"%str(request.params.values())#str([p for p in request.params])
+        return "Cabeçalho não foi gravado %s" % str(request.params.values())  # str([p for p in request.params])
+
 
 @post('/store')
 def read():
@@ -94,11 +101,11 @@ def read():
         json = retrieve_data(request.params)
         record_id = json.keys()[0]
         record = database.DRECORD[record_id]
-        record[PEC] +=[json[record_id]]
+        record[PEC] += [json[record_id]]
         database.DRECORD[record_id] = record
         return record
     except Exception:
-        return "Movimento de peça não foi gravado %s"%str(request.params.values())
+        return "Movimento de peça não foi gravado %s" % str(request.params.values())
 
 
 @post('/record/phase')
@@ -107,11 +114,12 @@ def record_phase():
         json = retrieve_data(request.params)
         record_id = json.keys()[0]
         record = database.DRECORD[record_id]
-        record[PHA] +=[json[record_id]]
+        record[PHA] += [json[record_id]]
         database.DRECORD[record_id] = record
         return record
     except Exception:
-        return "Fase dd jogo não foi gravado %s"%str(request.params.values())
+        return "Fase dd jogo não foi gravado %s" % str(request.params.values())
+
 
 @post('/record/end')
 def record_end():
@@ -119,11 +127,11 @@ def record_end():
         json = retrieve_data(request.params)
         record_id = json.keys()[0]
         record = database.DRECORD[record_id]
-        record[END] =json[record_id]
+        record[END] = json[record_id]
         database.DRECORD[record_id] = record
         return record
     except Exception:
-        return "Fim de jogo não foi gravado %s"%str(request.params.values())
+        return "Fim de jogo não foi gravado %s" % str(request.params.values())
 
 
 if __name__ == "__main__":
