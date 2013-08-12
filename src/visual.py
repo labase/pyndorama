@@ -16,6 +16,7 @@ Educational game construction.
 REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
+MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 
 
 class Visual:
@@ -73,7 +74,7 @@ class Visual:
                    frameBorder=0, src="view/battle.html")
         gui.img(place=self.illumini, width=500, src=IMG)
         self.fleet = [self.build_convoy(convoy, 4) for convoy in range(6)]
-        self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
+        #self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
 
 
 class Gui:
@@ -83,6 +84,68 @@ class Gui:
         self.doc, self.svg, self.html = doc, svg, html
         self.ajax, self.win = ajax, win
         self.main = doc["base"]
+        #doc["book"].onmousedown = self._menu
+        doc.oncontextmenu = self._menu
+        self.build_menu()
+        self.rubber_start = self.build_rubberband()
+
+    def build_menu(self):
+        def close(s=self):
+            self.menu.style.display = 'none'
+
+        def rubber(s=self):
+            self.menu.style.display = 'none'
+            self.doc["book"].bind('mousedown', self.rubber_start)
+
+        self.menu = self.div(
+            self.doc, o_position='absolute', o_top='50%', o_left='50%',
+            marginLeft='-150px', marginTop='-100px', o_padding='10px', o_display='none',
+            width='2px', height='2px', o_border='1px solid #d0d0d0')
+        self.img(self.menu, src=MENU % 'ad_objeto', o_padding='2px').onclick = rubber
+        self.img(self.menu, src=MENU % 'ad_cenario', o_padding='2px').onclick = close
+
+    def build_rubberband(self):
+        def start(ev):
+            self.rubber.style.left = self.rbX = ev.clientX
+            self.rubber.style.top = self.rbY = ev.clientY
+            self.rubber.style.display = 'block'
+            self.doc.onmouseup = stop
+            self.doc["book"].bind('mousemove', drag)
+            print(self.rbX, self.rbY)
+            ev.stopPropagation()
+            ev.preventDefault()
+            return False
+
+        def drag(ev):
+            self.rubber.style.width = self.rbH = ev.clientX - self.rbX
+            self.rubber.style.height = self.rbW = ev.clientY - self.rbY
+            ev.stopPropagation()
+            ev.preventDefault()
+            return False
+            #print(self.rbH)
+
+        def stop(ev):
+            print(self.rbH, self.rbW)
+            self.doc["book"].unbind('mousedown')  # , start)
+            self.doc["book"].unbind('mousemove')  # , drag)
+            self.doc.unbind('mouseup', stop)  # , stop)
+            self.rubber.style.display = 'none'
+            self.rubber.style.width = 2
+            self.rubber.style.height = 2
+
+        self.rubber = self.div(
+            self.doc, o_position='absolute', o_top='50%', o_left='50%',
+            marginLeft='-150px', marginTop='-100px', padding='10px', o_display='none',
+            o_width='2px', o_height='2px', o_border='1px solid #d0d0d0')
+        return start
+
+    def _menu(self, ev):
+        if True:  # ev.button == 2:
+            ev.stopPropagation()
+            ev.preventDefault()
+            #alert('menu')
+            self.menu.style.display = 'block'
+            return False
 
     def _locate(self, place, element):
         locus = place if place else self.main
@@ -110,4 +173,4 @@ class Gui:
             self, place=None, width=None, height=None, Class=None, src="", **k):
         """Html image. """
         return self._locate(place, self.html.IMG(
-            width=width, height=height, Class=Class, src=src))
+            width=width, height=height, Class=Class, src=src, style=self._filter(k)))
