@@ -2,7 +2,7 @@ body {
 	/* background-image: url("parch_backa.jpg");*/
 	margin-top: -10px;
 	background-repeat: no-repeat;
-	background-position: center -30px;
+	background-position: center -45px;
 	background-image: url("open-book.jpg");
 }
 #book {
@@ -10,7 +10,7 @@ body {
 	width: 1100px;
 	height: 600px;
 	/* padding: 10px;*/
-	margin-top: 100px;
+	margin-top: 30px;
 	margin-bottom: 20px;
 	margin-right: auto;
 	margin-left: auto;

@@ -5,7 +5,7 @@ Pyndorama - Model
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/08/10
+:Date: 2013/08/12
 :Status: This is a "work in progress"
 :Revision: 0.1.1
 :Home: `Labase <http://labase.selfip.org/>`__
@@ -81,4 +81,5 @@ def init():
     global THETHING
     THETHING = Thing()
     Thing.INVENTORY.update(dict(Locus=Locus, TheThing=THETHING))
+    return THETHING
 

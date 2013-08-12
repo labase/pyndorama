@@ -5,13 +5,13 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/08/11 $
+:Date: $Date: 2013/08/12 $
 :Status: This is a "work in progress"
 :Revision: $Revision: 0.2 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
-Educational game construction.
+Visual module with HTML5 factory and declarative builder.
 """
 REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
@@ -19,20 +19,22 @@ SHIP = 'view/Trireme_1.png'
 MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 
 
-class Visual:
-    """ Builder creating SVG elements and placeholder groups. :ref:`visual`
+class Builder:
+    """ Builder creating model elements and rendering with gui components. :ref:`builder`
     """
-    def __init__(self, doc, svg, html, ajax, win):
-        self.doc, self.svg, self.html, self.ajax, self.win = doc, svg, html, ajax, win
+    def __init__(self, gui, model):
+        self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
+        self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
+        self.model = model
         print(1)
         #args = win.location.search[1:]
         #self.args = {k: v for k, v in [c.split('=') for c in args.split('&')]}
-        self.doc_id = doc["doc_id"]
+        self.doc_id = self.doc["doc_id"]
 
-        self.book = doc["book"]
-        self.text = doc["text"]
-        self.subtext = doc["subtext"]
-        self.illumini = doc["illumini"]
+        self.book = self.doc["book"]
+        self.text = self.doc["text"]
+        self.subtext = self.doc["subtext"]
+        self.illumini = self.doc["illumini"]
 
     def _on_sent(self, req):
         if req.status == 200 or req.status == 0:
@@ -68,7 +70,10 @@ class Visual:
         self.ships = [self.build_ship(fleet) for ship in range(size)]
         return fleet
 
-    def build_book(self, gui):
+    def build_locus(self, gui):
+        self.gui = gui
+
+    def build_all(self, gui):
         self.gui = gui
         gui.iframe(place=self.text, width=450, height=600, Class="frame",
                    frameBorder=0, src="view/battle.html")
@@ -78,29 +83,27 @@ class Visual:
 
 
 class Gui:
-    """ Builder creating HTML, SVG elements and placeholder groups. :ref:`visual`
+    """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
     """
-    def __init__(self, doc, svg, html, ajax, win):
-        self.doc, self.svg, self.html = doc, svg, html
-        self.ajax, self.win = ajax, win
-        self.main = doc["base"]
-        #doc["book"].onmousedown = self._menu
-        doc.oncontextmenu = self._menu
+    def __init__(self, gui):
+        self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
+        self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
+        self.main = self.doc["base"]
+        self.doc.oncontextmenu = self._menu
         self.build_menu()
         self.rubber_start = self.build_rubberband()
 
     def build_menu(self):
-        def close(s=self):
+        def close(ev):
             self.menu.style.display = 'none'
 
-        def rubber(s=self):
+        def rubber(ev):
             self.menu.style.display = 'none'
             self.doc["book"].bind('mousedown', self.rubber_start)
 
         self.menu = self.div(
             self.doc, o_position='absolute', o_top='50%', o_left='50%',
-            marginLeft='-150px', marginTop='-100px', o_padding='10px', o_display='none',
-            width='2px', height='2px', o_border='1px solid #d0d0d0')
+            o_display='none', o_border='1px solid #d0d0d0')
         self.img(self.menu, src=MENU % 'ad_objeto', o_padding='2px').onclick = rubber
         self.img(self.menu, src=MENU % 'ad_cenario', o_padding='2px').onclick = close
 
