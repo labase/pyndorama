@@ -17,6 +17,11 @@ REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
 MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
+DEFAULT = [
+    dict(part='Locus', o_id=130812010, o_width=450, o_height=600, o_gkind='iframe',
+         o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
+    dict(part='Locus', o_id=130812010, o_width=500, o_src=IMG)
+]
 
 
 class Builder:
@@ -71,7 +76,9 @@ class Builder:
         return fleet
 
     def build_locus(self, gui):
-        self.gui = gui
+        self.model.create(
+            part='Locus', o_id=130812010, width=450, height=600, o_gkind='iframe',
+            o_Class="frame", frameBorder=0, src="view/battle.html")
 
     def build_all(self, gui):
         self.gui = gui
@@ -159,13 +166,13 @@ class Gui:
         #print(args)
         return {k[2:]: value for k, value in args.items() if "o_" in k}
 
-    def div(self, place=None, Class=None, **kwargs):
+    def div(self, place=None, Id=None, Class=None, **kwargs):
         #print(self._filter(kwargs))
         return self._locate(place, self.html.DIV(
             Class=Class, style=self._filter(kwargs)))
 
     def iframe(
-        self, place=None, width=10, height=10, Class="frame",
+        self, place=None, width=10, height=10, Id=None, Class="frame",
             frameBorder=0, src="", **kwarg):
         """Html iframe."""
         return self._locate(place, self.html.IFRAME(
@@ -173,7 +180,9 @@ class Gui:
             frameBorder=frameBorder, src=src))
 
     def img(
-            self, place=None, width=None, height=None, Class=None, src="", **k):
+            self, place=None, src="", width=None,
+            height=None, Id=None, Class=None, **k):
         """Html image. """
         return self._locate(place, self.html.IMG(
-            width=width, height=height, Class=Class, src=src, style=self._filter(k)))
+            Id=Id, width=width, height=height, Class=Class,
+            src=src, style=self._filter(k)))
