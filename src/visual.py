@@ -18,9 +18,11 @@ IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
 MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 DEFAULT = [
-    dict(part='Locus', o_id=130812010, o_width=450, o_height=600, o_gkind='iframe',
+    dict(o_part='Locus', o_Id=13081200990010, o_gcomp='iframe', o_place='text',
+         o_width=450, o_height=600,
          o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
-    dict(part='Locus', o_id=130812010, o_width=500, o_src=IMG)
+    dict(o_part='Locus', o_Id=13081200990020, o_gcomp='img', o_place='illumini',
+         o_width=500, o_src=IMG)
 ]
 
 
@@ -56,7 +58,7 @@ class Builder:
         req.send(data)
 
     def build_ship(self, place):
-        return self.gui.img(place=place, width=20, src=SHIP)
+        return self.gui.img(o_place=place, o_width=20, o_src=SHIP)
 
     def build_cell(self, place, name):
         S = 10
@@ -67,26 +69,29 @@ class Builder:
         #cell = self.html.DIV(style=stl)
         #place <= cell
         return self.gui.div(
-            place=place, o_position="absolute", o_width="%dpx" % SS, o_height="%dpx" % SS,
-            o_opacity=0.5, o_top=y, o_left=x, o_backgroundColor="navajowhite")
+            o_place=place, s_position="absolute", s_width="%dpx" % SS, s_height="%dpx" % SS,
+            s_opacity=0.5, s_top=y, s_left=x, s_backgroundColor="navajowhite")
 
     def build_convoy(self, convoy, size):
-        fleet = self.gui.div(place=self.subtext, Class="fleet")
+        fleet = self.gui.div(o_place=self.subtext, o_Class="fleet")
         self.ships = [self.build_ship(fleet) for ship in range(size)]
         return fleet
 
-    def build_locus(self, gui):
-        self.model.create(
-            part='Locus', o_id=130812010, width=450, height=600, o_gkind='iframe',
-            o_Class="frame", frameBorder=0, src="view/battle.html")
+    def build_deploy(self, descriptor):
+        [self.model.employ(**description) for description in descriptor]
 
     def build_all(self, gui):
         self.gui = gui
-        gui.iframe(place=self.text, width=450, height=600, Class="frame",
-                   frameBorder=0, src="view/battle.html")
-        gui.img(place=self.illumini, width=500, src=IMG)
+        self.build_deploy(DEFAULT)
+        print(self.model.items)
+        self.model.deploy(self.gui.employ)
+        '''
+        gui.iframe(o_place=self.text, o_width=450, o_height=600, o_Class="frame",
+                   o_frameBorder=0, o_src="view/battle.html")
+        gui.img(o_place=self.illumini, o_width=500, o_src=IMG)
         self.fleet = [self.build_convoy(convoy, 4) for convoy in range(6)]
         #self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
+        '''
 
 
 class Gui:
@@ -99,6 +104,15 @@ class Gui:
         self.doc.oncontextmenu = self._menu
         self.build_menu()
         self.rubber_start = self.build_rubberband()
+        self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img)
+
+    def employ(self, o_gcomp=None, o_place=None, **kwargs):
+        place = self.doc
+        try:
+            place = self.doc[o_place]
+        except Exception:
+            pass
+        self.deliverables[o_gcomp](o_place=place, **kwargs)
 
     def build_menu(self):
         def close(ev):
@@ -109,10 +123,10 @@ class Gui:
             self.doc["book"].bind('mousedown', self.rubber_start)
 
         self.menu = self.div(
-            self.doc, o_position='absolute', o_top='50%', o_left='50%',
-            o_display='none', o_border='1px solid #d0d0d0')
-        self.img(self.menu, src=MENU % 'ad_objeto', o_padding='2px').onclick = rubber
-        self.img(self.menu, src=MENU % 'ad_cenario', o_padding='2px').onclick = close
+            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+            s_display='none', s_border='1px solid #d0d0d0')
+        self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
+        self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
 
     def build_rubberband(self):
         def start(ev):
@@ -144,9 +158,9 @@ class Gui:
             self.rubber.style.height = 2
 
         self.rubber = self.div(
-            self.doc, o_position='absolute', o_top='50%', o_left='50%',
-            marginLeft='-150px', marginTop='-100px', padding='10px', o_display='none',
-            o_width='2px', o_height='2px', o_border='1px solid #d0d0d0')
+            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+            marginLeft='-150px', marginTop='-100px', padding='10px', s_display='none',
+            s_width='2px', s_height='2px', s_border='1px solid #d0d0d0')
         return start
 
     def _menu(self, ev):
@@ -164,25 +178,25 @@ class Gui:
 
     def _filter(self, args):
         #print(args)
-        return {k[2:]: value for k, value in args.items() if "o_" in k}
+        return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
 
-    def div(self, place=None, Id=None, Class=None, **kwargs):
+    def div(self, o_place=None, o_Id=None, o_Class=None, **kwargs):
         #print(self._filter(kwargs))
-        return self._locate(place, self.html.DIV(
-            Class=Class, style=self._filter(kwargs)))
+        return self._locate(o_place, self.html.DIV(
+            Id=o_Id, Class=o_Class, style=self._filter(kwargs)))
 
     def iframe(
-        self, place=None, width=10, height=10, Id=None, Class="frame",
-            frameBorder=0, src="", **kwarg):
+        self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
+            o_frameBorder=0, o_src="", **kwarg):
         """Html iframe."""
-        return self._locate(place, self.html.IFRAME(
-            width=width, height=height, Class=Class,
-            frameBorder=frameBorder, src=src))
+        return self._locate(o_place, self.html.IFRAME(
+            Id=o_Id, width=o_width, height=o_height, Class=o_Class,
+            frameBorder=o_frameBorder, src=o_src))
 
     def img(
-            self, place=None, src="", width=None,
-            height=None, Id=None, Class=None, **k):
+            self, o_place=None, o_src="", o_width=None,
+            o_height=None, o_Id=None, o_Class=None, **kwargs):
         """Html image. """
-        return self._locate(place, self.html.IMG(
-            Id=Id, width=width, height=height, Class=Class,
-            src=src, style=self._filter(k)))
+        return self._locate(o_place, self.html.IMG(
+            Id=o_Id, width=o_width, height=o_height, Class=o_Class,
+            src=o_src, style=self._filter(kwargs)))

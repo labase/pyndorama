@@ -21,25 +21,28 @@ class Thing:
     ALL_THINGS = {}
     INVENTORY = {}
 
-    def __init__(self, fab=None, part=None, o_id=None, **kwargs):
-        self.create(fab=fab, part=part, o_id=o_id, **kwargs)
-
-    def create(self, fab=None, part=None, o_id=None, **kwargs):
-        """Fabricate and return a given part."""
-        self.o_id = o_id or len(Thing.ALL_THINGS)
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         self.items = []
+        #print ("Thing init:", fab, part, o_Id)
+        self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+
+    def create(self, fab=None, part=None, o_Id=None, **kwargs):
+        """Fabricate and return a given part."""
+        #print ("create:", fab, part, o_Id, kwargs, self)
+        self.o_Id = o_Id or len(Thing.ALL_THINGS)
         self.o_part = part
-        (fab or self).register(o_id or 130812999999, self)
+        (fab or self).register(o_Id or 13081299999999, self)
         self._add_properties(**kwargs)
         self._do_create()
 
-    def employ(self, part=None, o_id=None, **kwargs):
+    def employ(self, o_part=None, o_Id=None, **kwargs):
         """Fabricate and locate a given part."""
+        #print ("employ:", o_part, o_Id, kwargs)
         try:
-            thing_class = Thing.INVENTORY[part](o_id=o_id)
-            thing_class(fab=self, part=part, o_id=o_id, **kwargs)
+            thing_class = Thing.INVENTORY[o_part]
+            thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
-            print ("error creating %s id = %s" % (part, o_id))
+            print ("error creating %s id = %s" % (o_part, o_Id))
 
     def register(self, oid, entry):
         """Append an entry to this resgistry. """
@@ -52,8 +55,8 @@ class Thing:
 
     def deploy(self, site=None, **kwargs):
         """Deploy this thing at a certain site. """
-        site({argument: getattr(self, argument)
-              for argument in dir(self) if argument.startswith("o_")})
+        for item in self.items:
+            item.deploy(site=site, **kwargs)
 
     def _do_create(self):
         """Finish thing creation. """
@@ -61,15 +64,16 @@ class Thing:
 
     def _add_properties(self, **kwargs):
         """Finish thing creation. """
+        #print (kwargs)
         [setattr(self, argument, value)
-         for argument, value in kwargs.items() if argument.startswith("o_")]
+         for argument, value in kwargs.items() if argument[:2] in "o_ s_"]
 
 
 class Holder(Thing):
     """A paceholder for gui positioning scaffolding."""
 
-    def __init__(self, fab=None, part=None, o_id=None, **kwargs):
-        fab.register(o_id, self)
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        fab.register(o_Id, self)
 
     def append(self, item):
         """Append this item to the master container. """
@@ -79,21 +83,23 @@ class Holder(Thing):
 class Locus(Thing):
     """A place where things happen."""
 
-    #def __init__(self, fab=None, part=None, o_id=None, **kwargs):
-    #    Thing.__init__(self, o_id)
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        self.items = []
+        #print ("Thing init:", fab, part, o_Id)
+        self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
 
     def _do_create(self):
         """Finish thing creation. """
-        container = Thing.ALL_THINGS.setdefault(self.o_con, THETHING)
-        #Thing.ALL_THINGS[self.o_con] = self
+        container = Thing.ALL_THINGS.setdefault(self.o_place, THETHING)
+        #Thing.ALL_THINGS[self.o_place] = self
         self.container = container.append(self)
+        #print("""Finish thing creation. """, container, self.o_place, self.container, self)
 
     def deploy(self, site=None, **kwargs):
         """Deploy this thing at a certain site. """
-        Thing.deploy(site=site, **kwargs)
+        site(**{argument: getattr(self, argument)
+                for argument in dir(self) if argument[:2] in "o_ s_"})
         [item.deploy(site=site, **kwargs) for item in self.items]
-        site({argument: getattr(self, argument)
-              for argument in dir(self) if argument.startswith("o_")})
 
 
 def init():
@@ -102,4 +108,3 @@ def init():
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING))
     print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING
-
