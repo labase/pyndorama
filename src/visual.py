@@ -22,7 +22,13 @@ DEFAULT = [
          o_width=450, o_height=600,
          o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
     dict(o_part='Locus', o_Id=13081200990020, o_gcomp='img', o_place='illumini',
-         o_width=500, o_src=IMG)
+         o_width=500, o_src=IMG),
+    dict(o_part='Locus', o_Id=13081200990030, o_gcomp='div', o_place='subtext',
+         o_Class="fleet"),
+    dict(o_part='Grid', o_Id=13081200990040, o_gcomp={'0': 'img'}, o_width=30,
+         o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000'),
+    dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
+         o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
 ]
 
 
@@ -64,10 +70,6 @@ class Builder:
         S = 10
         SS = 9
         x, y = 1100 - 120 + (name % 50) * S, 100 + (name // 50) * S
-        #stl = dict(position="absolute", width="%dpx" % SS, height="%dpx" % SS,
-        #           opacity=0.5, top=y, left=x, backgroundColor="navajowhite")
-        #cell = self.html.DIV(style=stl)
-        #place <= cell
         return self.gui.div(
             o_place=place, s_position="absolute", s_width="%dpx" % SS, s_height="%dpx" % SS,
             s_opacity=0.5, s_top=y, s_left=x, s_backgroundColor="navajowhite")
@@ -86,10 +88,6 @@ class Builder:
         print(self.model.items)
         self.model.deploy(self.gui.employ)
         '''
-        gui.iframe(o_place=self.text, o_width=450, o_height=600, o_Class="frame",
-                   o_frameBorder=0, o_src="view/battle.html")
-        gui.img(o_place=self.illumini, o_width=500, o_src=IMG)
-        self.fleet = [self.build_convoy(convoy, 4) for convoy in range(6)]
         #self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
         '''
 
@@ -111,7 +109,7 @@ class Gui:
         try:
             place = self.doc[o_place]
         except Exception:
-            pass
+            print('pace rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
     def build_menu(self):

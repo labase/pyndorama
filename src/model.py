@@ -73,11 +73,18 @@ class Holder(Thing):
     """A paceholder for gui positioning scaffolding."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
-        fab.register(o_Id, self)
+        kwargs['o_Id'] = o_Id
+        self._add_properties(**kwargs)
 
     def append(self, item):
         """Append this item to the master container. """
         return THETHING
+
+    def deploy(self, site=None, **kwargs):
+        """Deploy this thing at a certain site. """
+        print(self.o_place, self.o_width)
+        site(**{argument: getattr(self, argument)
+                for argument in dir(self) if argument[:2] in "o_ s_"})
 
 
 class Locus(Thing):
@@ -99,12 +106,34 @@ class Locus(Thing):
         """Deploy this thing at a certain site. """
         site(**{argument: getattr(self, argument)
                 for argument in dir(self) if argument[:2] in "o_ s_"})
-        [item.deploy(site=site, **kwargs) for item in self.items]
+        for item in self.items:
+            item.deploy(site=site, **kwargs)
+
+
+class Grid(Thing):
+    """A place where things happen."""
+
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        self.items = []
+        #print ("Thing init:", fab, part, o_Id)
+        self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+        mapper, gcomp, src = [kwargs.pop(arg)
+                              for arg in 'o_mapper o_gcomp o_src'. split()]
+        objid, args = o_Id, kwargs
+        self.items = [
+            Holder(o_Id=objid+i, o_gcomp=gcomp[k], o_src=src[k], **args)
+            for i, k in enumerate(mapper)]
+
+    def _do_create(self):
+        """Finish thing creation. """
+        self.container = Thing.ALL_THINGS.setdefault(
+            self.o_place, THETHING).append(self)
 
 
 def init():
     global THETHING
     THETHING = Thing()
-    Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING))
+    Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
+                                Grid=Grid))
     print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING
