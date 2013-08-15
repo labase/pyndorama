@@ -102,6 +102,22 @@ class Gui:
         self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
         self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
 
+    def build_dragndrop(self, draggable, droppable):
+        def start(ev):
+            ev.data['text'] = ev.target.id
+            # permitir que o objeto arrastado seja movido
+            ev.data.effectAllowed = 'move'
+
+        def drag_over(ev):
+            ev.data.dropEffect = 'move'
+            ev.preventDefault()
+
+        def drop(ev):
+            src_id = ev.data['text']
+            elt = self.doc[src_id]
+            droppable.receive(src_id, elt)
+        #draggable.bind_start
+
     def build_rubberband(self):
         def start(ev):
             self.rubber.style.left = self.rbX = ev.clientX
