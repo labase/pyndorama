@@ -5,9 +5,9 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/08/12 $
+:Date: $Date: 2013/08/15 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.2 $
+:Revision: $Revision: 0.3 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
@@ -25,10 +25,12 @@ DEFAULT = [
          o_width=500, o_src=IMG),
     dict(o_part='Locus', o_Id=13081200990030, o_gcomp='div', o_place='subtext',
          o_Class="fleet"),
-    dict(o_part='Grid', o_Id=13081200990040, o_gcomp={'0': 'img'}, o_width=30,
-         o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000'),
-    dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
-         o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
+    dict(o_part='Grid', o_Id=13081200990040, o_width=30, o_place='13081200990030',
+         o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
+    dict(o_part='Grid', o_Id=13081200990040, o_width=30, o_place='13081200990030',
+         o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
+    #dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
+    #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
 ]
 
 
@@ -109,7 +111,7 @@ class Gui:
         try:
             place = self.doc[o_place]
         except Exception:
-            print('pace rejected:', o_place)
+            print('place rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
     def build_menu(self):
