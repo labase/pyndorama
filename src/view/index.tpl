@@ -32,6 +32,7 @@ Pyndorama - Educational game creation
             class Brython:
                 DOC, SVG, HTML, AJAX, WIN, TIME = doc, svg, html, ajax, win, time
             main(Brython)
+        </script>
     </head>
     <body onLoad="brython(1)" class="main">
         <div id="doc_id" class="hidden_display">{{ doc_id }}</div>
