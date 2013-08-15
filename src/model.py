@@ -53,10 +53,10 @@ class Thing:
         self.items.append(item)
         return self
 
-    def deploy(self, site=None, **kwargs):
+    def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
         for item in self.items:
-            item.deploy(site=site, **kwargs)
+            item.deploy(employ=employ, **kwargs)
 
     def _do_create(self):
         """Finish thing creation. """
@@ -80,11 +80,11 @@ class Holder(Thing):
         """Append this item to the master container. """
         return THETHING
 
-    def deploy(self, site=None, **kwargs):
+    def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
         #print(self.o_place, self.o_width)
-        site(**{argument: getattr(self, argument)
-                for argument in dir(self) if argument[:2] in "o_ s_"})
+        employ(**{argument: getattr(self, argument)
+                  for argument in dir(self) if argument[:2] in "o_ s_"})
 
 
 class Locus(Thing):
@@ -98,20 +98,19 @@ class Locus(Thing):
     def _do_create(self):
         """Finish thing creation. """
         container = Thing.ALL_THINGS.setdefault(self.o_place, THETHING)
-        #Thing.ALL_THINGS[self.o_place] = self
         self.container = container.append(self)
         #print("""Finish thing creation. """, container, self.o_place, self.container, self)
 
-    def deploy(self, site=None, **kwargs):
+    def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
-        site(**{argument: getattr(self, argument)
-                for argument in dir(self) if argument[:2] in "o_ s_"})
+        employ(**{argument: getattr(self, argument)
+                  for argument in dir(self) if argument[:2] in "o_ s_"})
         for item in self.items:
-            item.deploy(site=site, **kwargs)
+            item.deploy(employ=employ, **kwargs)
 
 
 class Grid(Thing):
-    """A place where things happen."""
+    """A mapped grid with sub elements."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         self.items = []
@@ -119,10 +118,9 @@ class Grid(Thing):
         self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
         grid, invent = kwargs.pop('o_grid')
         objid, obj, args = o_Id, self, kwargs  # .items()
-        print(invent, [(invent[ckey]['o_part'], ckey) for i, ckey in enumerate(grid)])
-        self.items = [invent[ckey].update(args) or Thing.INVENTORY[invent[ckey]['o_part']](
-            o_Id=objid+i, **invent[ckey])
-            for i, ckey in enumerate(grid)]
+        self.items = [
+            invent[ckey].update(args) or Thing.INVENTORY[invent[ckey]['o_part']](
+                o_Id=objid+i, **invent[ckey]) for i, ckey in enumerate(grid)]
 
     def _do_create(self):
         """Finish thing creation. """
@@ -135,5 +133,5 @@ def init():
     THETHING = Thing()
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
                                 Grid=Grid))
-    print (Thing.INVENTORY, Thing.ALL_THINGS)
+    #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING

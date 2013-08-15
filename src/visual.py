@@ -27,7 +27,7 @@ DEFAULT = [
          o_Class="fleet"),
     dict(o_part='Grid', o_Id=13081200990040, o_width=30, o_place='13081200990030',
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    dict(o_part='Grid', o_Id=13081200990040, o_width=30, o_place='13081200990030',
+    dict(o_part='Grid', o_Id=13081200990050, o_width=30, o_place='13081200990030',
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
     #dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
     #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
@@ -41,15 +41,8 @@ class Builder:
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.model = model
-        print(1)
         #args = win.location.search[1:]
         #self.args = {k: v for k, v in [c.split('=') for c in args.split('&')]}
-        self.doc_id = self.doc["doc_id"]
-
-        self.book = self.doc["book"]
-        self.text = self.doc["text"]
-        self.subtext = self.doc["subtext"]
-        self.illumini = self.doc["illumini"]
 
     def _on_sent(self, req):
         if req.status == 200 or req.status == 0:
@@ -65,22 +58,6 @@ class Builder:
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
-    def build_ship(self, place):
-        return self.gui.img(o_place=place, o_width=20, o_src=SHIP)
-
-    def build_cell(self, place, name):
-        S = 10
-        SS = 9
-        x, y = 1100 - 120 + (name % 50) * S, 100 + (name // 50) * S
-        return self.gui.div(
-            o_place=place, s_position="absolute", s_width="%dpx" % SS, s_height="%dpx" % SS,
-            s_opacity=0.5, s_top=y, s_left=x, s_backgroundColor="navajowhite")
-
-    def build_convoy(self, convoy, size):
-        fleet = self.gui.div(o_place=self.subtext, o_Class="fleet")
-        self.ships = [self.build_ship(fleet) for ship in range(size)]
-        return fleet
-
     def build_deploy(self, descriptor):
         [self.model.employ(**description) for description in descriptor]
 
@@ -89,9 +66,6 @@ class Builder:
         self.build_deploy(DEFAULT)
         print(self.model.items)
         self.model.deploy(self.gui.employ)
-        '''
-        #self.grid = [self.build_cell(self.book, name) for name in range(50*38)]
-        '''
 
 
 class Gui:
