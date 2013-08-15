@@ -14,8 +14,10 @@ Time-Web - Main
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
+from os import environ
 from couchdb import Server
 
+URL = environ.get('CLOUDANT_URL')
 _DOCBASES = ['keystore']
 
 
@@ -23,8 +25,8 @@ class Activ(Server):
     "Active database"
     keystore = {}
 
-    def __init__(self, url=None):
-        Server.__init__(self)
+    def __init__(self, url=URL):
+        Server.__init__(self, url)
         act = self
         test_and_create = lambda doc: doc in act and act[doc] or act.create(doc)
         for attribute in _DOCBASES:
@@ -39,11 +41,12 @@ class Activ(Server):
                 pass
 
 
-try:
+#try:
+if True:
     __ACTIV = Activ()
     DRECORD = __ACTIV.keystore
-except Exception:
-    DRECORD = None
+#except Exception:
+    #DRECORD = None
 
 
 if __name__ == "__main__":
