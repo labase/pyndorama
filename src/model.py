@@ -73,7 +73,7 @@ class Holder(Thing):
     """A paceholder for gui positioning scaffolding."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
-        self.o_part, kwargs['o_Id'] = "Holder", o_Id
+        self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         self._add_properties(**kwargs)
 
     def append(self, item):
@@ -109,29 +109,52 @@ class Locus(Thing):
             item.deploy(employ=employ, **kwargs)
 
 
-class Grid(Thing):
+class Grid(Locus):
     """A mapped grid with sub elements."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
-        self.items = []
         #print ("Thing init:", fab, part, o_Id)
+        kwargs['o_gcomp'] = 'div'
         self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+        self.items, kwargs['o_place'], kwargs['o_gcomp'] = [], o_Id, 'div'
         grid, invent = kwargs.pop('o_grid')
+        kwargs.pop('o_gcomp')
         objid, obj, args = o_Id, self, kwargs  # .items()
+        #return
         self.items = [
             invent[ckey].update(args) or Thing.INVENTORY[invent[ckey]['o_part']](
-                o_Id=objid+i, **invent[ckey]) for i, ckey in enumerate(grid)]
+                o_Id=objid+'i', **invent[ckey]) for i, ckey in enumerate(grid)]
 
-    def _do_create(self):
+    def ___do_create(self):
         """Finish thing creation. """
         self.container = Thing.ALL_THINGS.setdefault(
             self.o_place, THETHING).append(self)
+
+
+class Dragger(Holder):
+    """A drag decorator."""
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        Holder.__init__(self, o_Id=o_Id)
+        dropper, dragger = kwargs['o_drop'], kwargs['o_place']
+        self.dropper = Thing.ALL_THINGS[dropper]
+        self.dropper.receive = self.receive
+        Thing.ALL_THINGS[dragger].enter = self.enter
+        kwargs['action'] = self.dropper.receive
+        self._add_properties(**kwargs)
+        THETHING.append(self)
+
+    def receive(self, guest_id):
+        return Thing.ALL_THINGS[guest_id].enter(self.dropper)
+
+    def enter(self, host):
+        self.container = host
+        return self.o_Id
 
 
 def init():
     global THETHING
     THETHING = Thing()
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
-                                Grid=Grid))
+                                Grid=Grid, Dragger=Dragger))
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING

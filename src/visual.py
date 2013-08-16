@@ -5,9 +5,9 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/08/15 $
+:Date: $Date: 2013/08/16 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.3 $
+:Revision: $Revision: 0.4 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
@@ -18,17 +18,19 @@ IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
 MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 DEFAULT = [
-    dict(o_part='Locus', o_Id=13081200990010, o_gcomp='iframe', o_place='text',
+    dict(o_part='Locus', o_Id='13081200990010', o_gcomp='iframe', o_place='text',
          o_width=450, o_height=600,
          o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
-    dict(o_part='Locus', o_Id=13081200990020, o_gcomp='img', o_place='illumini',
+    dict(o_part='Locus', o_Id='13081200990020', o_gcomp='img', o_place='illumini',
          o_width=500, o_src=IMG),
-    dict(o_part='Locus', o_Id=13081200990030, o_gcomp='div', o_place='subtext',
+    dict(o_part='Locus', o_Id='13081200990030', o_gcomp='div', o_place='subtext',
          o_Class="fleet"),
-    dict(o_part='Grid', o_Id=13081200990040, o_width=30, o_place='13081200990030',
+    dict(o_part='Grid', o_Id='13081200990040', o_width=30, o_place='13081200990030',
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    dict(o_part='Grid', o_Id=13081200990050, o_width=30, o_place='13081200990030',
+    dict(o_part='Grid', o_Id='13081200990050', o_width=30, o_place='13081200990030',
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
+    dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
+         o_drop='13081200990020'),
     #dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
     #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
 ]
@@ -78,10 +80,12 @@ class Gui:
         self.doc.oncontextmenu = self._menu
         self.build_menu()
         self.rubber_start = self.build_rubberband()
-        self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img)
+        self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
+                                 drag=self.build_dragndrop)
 
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
+        print ('employ', o_place, o_gcomp)
         try:
             place = self.doc[o_place]
         except Exception:
@@ -102,7 +106,7 @@ class Gui:
         self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
         self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
 
-    def build_dragndrop(self, draggable, droppable):
+    def build_dragndrop(self, o_place, o_drop, **kwargs):
         def start(ev):
             ev.data['text'] = ev.target.id
             # permitir que o objeto arrastado seja movido
@@ -115,8 +119,11 @@ class Gui:
         def drop(ev):
             src_id = ev.data['text']
             elt = self.doc[src_id]
-            droppable.receive(src_id, elt)
-        #draggable.bind_start
+            self.doc[kwargs['action'](src_id)] <= elt
+        print('drag', o_drop, o_place)
+        draggable, droppable = o_place, self.doc[o_drop]
+        draggable.draggable, draggable.onmousedown = True, start
+        droppable.onmouseover, droppable.onmouseup = drag_over, drop
 
     def build_rubberband(self):
         def start(ev):
