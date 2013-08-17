@@ -5,6 +5,9 @@ body {
 	background-position: center -45px;
 	background-image: url("open-book.jpg");
 }
+#default{
+	
+}
 #book {
 	/* background-image: url("parch_backa.jpg");*/
 	width: 1100px;

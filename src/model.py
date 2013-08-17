@@ -118,12 +118,12 @@ class Grid(Locus):
         self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
         self.items, kwargs['o_place'], kwargs['o_gcomp'] = [], o_Id, 'div'
         grid, invent = kwargs.pop('o_grid')
-        kwargs.pop('o_gcomp')
-        objid, obj, args = o_Id, self, kwargs  # .items()
+        args = {key[1:]: value for key, value in kwargs.items() if key[:3] in "go_ gs_ "}
+        objid, args['o_place'], obj = o_Id, o_Id, self  # kwargs  # .items()
         #return
         self.items = [
             invent[ckey].update(args) or Thing.INVENTORY[invent[ckey]['o_part']](
-                o_Id=objid+'i', **invent[ckey]) for i, ckey in enumerate(grid)]
+                o_Id=objid+str(i), **invent[ckey]) for i, ckey in enumerate(grid)]
 
     def ___do_create(self):
         """Finish thing creation. """

@@ -25,9 +25,11 @@ DEFAULT = [
          o_width=500, o_src=IMG),
     dict(o_part='Locus', o_Id='13081200990030', o_gcomp='div', o_place='subtext',
          o_Class="fleet"),
-    dict(o_part='Grid', o_Id='13081200990040', o_width=30, o_place='13081200990030',
+    dict(o_part='Grid', o_Id='13081200990040', go_width=30, o_place='13081200990030',
+         gs_backgroundColor='white', s_width=140,
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    dict(o_part='Grid', o_Id='13081200990050', o_width=30, o_place='13081200990030',
+    dict(o_part='Grid', o_Id='13081200990050', go_width=30, o_place='13081200990030',
+         gs_backgroundColor='navajowhite', s_width=120,
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
     dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
          o_drop='13081200990020'),
@@ -108,12 +110,16 @@ class Gui:
 
     def build_dragndrop(self, o_place, o_drop, **kwargs):
         def start(ev):
+            print(ev, ev.data, ev.target.id)
             ev.data['text'] = ev.target.id
             # permitir que o objeto arrastado seja movido
             ev.data.effectAllowed = 'move'
 
         def drag_over(ev):
-            ev.data.dropEffect = 'move'
+            ev.target.style.cursor = "pointer"
+
+        def drop_over(ev):
+            #ev.data.dropEffect = 'move'
             ev.preventDefault()
 
         def drop(ev):
@@ -123,7 +129,8 @@ class Gui:
         print('drag', o_drop, o_place)
         draggable, droppable = o_place, self.doc[o_drop]
         draggable.draggable, draggable.onmousedown = True, start
-        droppable.onmouseover, droppable.onmouseup = drag_over, drop
+        draggable.onmouseover = drag_over
+        droppable.onmouseover, droppable.onmouseup = drop_over, drop
 
     def build_rubberband(self):
         def start(ev):
@@ -177,8 +184,8 @@ class Gui:
         #print(args)
         return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
 
-    def div(self, o_place=None, o_Id=None, o_Class=None, **kwargs):
-        #print(self._filter(kwargs))
+    def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
+        print(kwargs, self._filter(kwargs))
         return self._locate(o_place, self.html.DIV(
             Id=o_Id, Class=o_Class, style=self._filter(kwargs)))
 
@@ -191,8 +198,8 @@ class Gui:
             frameBorder=o_frameBorder, src=o_src))
 
     def img(
-            self, o_place=None, o_src="", o_width=None,
-            o_height=None, o_Id=None, o_Class=None, **kwargs):
+            self, o_place=None, o_src="", o_width='',
+            o_height='', o_Id='', o_Class='deafault', **kwargs):
         """Html image. """
         return self._locate(o_place, self.html.IMG(
             Id=o_Id, width=o_width, height=o_height, Class=o_Class,
