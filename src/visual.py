@@ -13,10 +13,18 @@ Pyndorama - Visual
 
 Visual module with HTML5 factory and declarative builder.
 """
+ACTIV = "https://activufrj.nce.ufrj.br"
+SOURCE = 'mansao'
+GROUP = 'EICA'
 REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
 MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
+MENULIST = ACTIV + '/rest/studio/%s?type=%d'
+MENUITEM = ACTIV + '/rest/studio/%s?size=N'
+STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
+MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click = "rubber"),
+                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click = "scenes")]
 DEFAULT = [
     dict(o_part='Locus', o_Id='13081200990010', o_gcomp='iframe', o_place='text',
          o_width=450, o_height=600,
@@ -45,8 +53,10 @@ class Builder:
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.model = model
-        #args = win.location.search[1:]
-        #self.args = {k: v for k, v in [c.split('=') for c in args.split('&')]}
+        args = self.win.location.search
+        if '=' in args:
+            self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
+            print(self.args)
 
     def _on_sent(self, req):
         if req.status == 200 or req.status == 0:
@@ -94,19 +104,20 @@ class Gui:
             print('place rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
-    def build_menu(self):
-        def close(ev):
-            self.menu.style.display = 'none'
+    def scenes(self, ev):
+        self.menu.style.display = 'none'
 
-        def rubber(ev):
-            self.menu.style.display = 'none'
-            self.doc["book"].bind('mousedown', self.rubber_start)
+    def rubber(self, ev):
+        self.menu.style.display = 'none'
+        self.doc["book"].bind('mousedown', self.rubber_start)
 
+    def build_menu(self, menu=MENU_DEFAULT):
         self.menu = self.div(
             self.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display='none', s_border='1px solid #d0d0d0')
-        self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
-        self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
+        [self.img(self.menu, **kwargs).bind("click",getattr(self, kwargs['o_click'])) for kwargs in menu]
+        #self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
+        #self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
 
     def build_dragndrop(self, o_place, o_drop, **kwargs):
         def start(ev):
@@ -156,7 +167,7 @@ class Gui:
             print(self.rbH, self.rbW)
             self.doc["book"].unbind('mousedown')  # , start)
             self.doc["book"].unbind('mousemove')  # , drag)
-            self.doc.unbind('mouseup', stop)  # , stop)
+            #self.doc.unbind('mouseup', stop)  # , stop)
             self.rubber.style.display = 'none'
             self.rubber.style.width = 2
             self.rubber.style.height = 2
