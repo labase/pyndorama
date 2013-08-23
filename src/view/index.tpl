@@ -22,7 +22,7 @@ Pyndorama - Educational game creation
         <style>
         .hidden_display { display :none;}
         </style>
-        <script type="text/javascript" src="http://dl.dropboxusercontent.com/u/1751704/share/soft/brython/brython.js"></script>
+        <script type="text/javascript" src="http://dl.dropboxusercontent.com/u/1751704/labase/lib/brython.js"></script>
         <script type="text/python" src="control.py">
         </script>
         <script type="text/python">

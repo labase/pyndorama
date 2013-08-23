@@ -141,7 +141,7 @@ class Dragger(Holder):
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         Holder.__init__(self, o_Id=o_Id)
         dropper, dragger, self.kwargs = kwargs['o_drop'], kwargs['o_place'], kwargs
-        self.kwargs = {key, value for key, value in kwargs
+       self.kwargs = {key, value for key, value in kwargs
                        if key in 'o_drop '}
         self.dropper = Thing.ALL_THINGS[dropper]
         self.dragger = Thing.ALL_THINGS[dragger]
