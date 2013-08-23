@@ -24,6 +24,8 @@ MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
 EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
         "EICA/3_1c.jpg", "EICA/3_2.png", "EICA/4_2c.jpg"]
+EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
+         "jeppeto/Astrolabio.png", "jeppeto/astrolabiobserv.png"]
 E_MENU = lambda item: dict(o_src=MENUITEM % item, s_padding='2px', o_click="rubber")
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="rubber"),
@@ -44,7 +46,7 @@ DEFAULT = [
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
     dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
          o_drop='13081200990020'),
-    #dict(o_part='Grid', o_Id=13081200990050, o_gcomp={'0': 'img'}, o_width=30,
+    #dict(o_part='Inventary', o_Id=13082300990010, o_gcomp={'0': 'img'}, o_width=30,
     #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
 ]
 
@@ -98,6 +100,18 @@ class Gui:
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
 
+    def receive(self, url, default, deliver):
+        self.status = 555
+        def response(req=self, default=default):
+            data = (req.status==200 or req.status==0) and req.text or default
+            deliver(data)  
+        req = self.ajax()
+        req.on_complete = response
+        req.set_timeout(timeout,response)
+        req.open('GET', url, True)
+        req.set_header('content-type', 'application/x-www-form-urlencoded')
+        req.send()
+
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
         print ('employ', o_place, o_gcomp)
@@ -110,6 +124,10 @@ class Gui:
     def scenes(self, ev):
         self.menu.style.display = 'none'
         self.s_menu = self.build_menu([E_MENU(item) for item in EICA])
+
+    def props(self, ev):
+        self.menu.style.display = 'none'
+        self.p_menu = self.build_menu([E_MENU(item) for item in EICAP])
 
     def rubber(self, ev):
         self.menu.style.display = 'none'
