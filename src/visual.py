@@ -15,6 +15,7 @@ Visual module with HTML5 factory and declarative builder.
 """
 ACTIV = "https://activufrj.nce.ufrj.br"
 SOURCE = 'mansao'
+TIMEOUT = 5  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
@@ -26,9 +27,9 @@ EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
         "EICA/3_1c.jpg", "EICA/3_2.png", "EICA/4_2c.jpg"]
 EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
          "jeppeto/Astrolabio.png", "jeppeto/astrolabiobserv.png"]
-E_MENU = lambda item: dict(o_src=MENUITEM % item, s_padding='2px', o_click="rubber")
+E_MENU = lambda item: dict(o_src=MENUITEM % item, s_padding='2px', o_click="act_rubber")
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
-MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="rubber"),
+MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
                 dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
 DEFAULT = [
     dict(o_part='Locus', o_Id='13081200990010', o_gcomp='iframe', o_place='text',
@@ -44,8 +45,8 @@ DEFAULT = [
     dict(o_part='Grid', o_Id='13081200990050', go_width=30, o_place='13081200990030',
          gs_backgroundColor='navajowhite', s_width=120,
          o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
-         o_drop='13081200990020'),
+    #dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
+    #     o_drop='13081200990020'),
     #dict(o_part='Inventary', o_Id=13082300990010, o_gcomp={'0': 'img'}, o_width=30,
     #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
 ]
@@ -94,27 +95,31 @@ class Gui:
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.main = self.doc["base"]
+        self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
+        self.menu = self.build_menu(display='none')
+        self.s_menu = self.build_menu([E_MENU(item) for item in EICA],display='none')
+        self.p_menu = self.build_menu([E_MENU(item) for item in EICAP],display='none')
         self.doc.oncontextmenu = self._menu
-        self.menu = self.build_menu()
         self.rubber_start = self.build_rubberband()
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
 
     def receive(self, url, default, deliver):
         self.status = 555
+
         def response(req=self, default=default):
-            data = (req.status==200 or req.status==0) and req.text or default
-            deliver(data)  
+            data = (req.status == 200 or req.status == 0) and req.text or default
+            deliver(data)
         req = self.ajax()
         req.on_complete = response
-        req.set_timeout(timeout,response)
+        req.set_timeout(TIMEOUT, response)
         req.open('GET', url, True)
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send()
 
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
-        print ('employ', o_place, o_gcomp)
+        #print ('employ', o_place, o_gcomp)
         try:
             place = self.doc[o_place]
         except Exception:
@@ -123,35 +128,37 @@ class Gui:
 
     def scenes(self, ev):
         self.menu.style.display = 'none'
-        self.s_menu = self.build_menu([E_MENU(item) for item in EICA])
+        self.s_menu.style.display = 'block'
 
     def props(self, ev):
         self.menu.style.display = 'none'
-        self.p_menu = self.build_menu([E_MENU(item) for item in EICAP])
+        self.p_menu.style.display = 'block'
 
-    def rubber(self, ev):
-        self.menu.style.display = 'none'
+    def act_rubber(self, ev):
+        print('menu:', ev)
+        self.s_menu.style.display = 'none'
+        self.p_menu.style.display = 'none'
         self.doc["book"].bind('mousedown', self.rubber_start)
 
-    def build_menu(self, menu=MENU_DEFAULT):
-        menu = self.div(
+    def build_menu(self, menu=MENU_DEFAULT, display="block"):
+        _menu = self.div(
             self.doc, s_position='absolute', s_top='50%', s_left='50%',
-            s_display='none', s_border='1px solid #d0d0d0')
-        [self.img(menu, **kwargs).bind(
+            s_display=display, s_border='1px solid #d0d0d0')
+        print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.img(_menu, **kwargs).bind(
             "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
-        return menu
+        return _menu
 
     def build_drag(self, o_place, **kwargs):
         def start(ev):
-            print(ev, ev.data, ev.target.id)
+            #print(ev, ev.data, ev.target.id)
             ev.data['text'] = ev.target.id
             # permitir que o objeto arrastado seja movido
             ev.data.effectAllowed = 'move'
-        print('drag', o_drop, o_place)
+        print('drag', o_place)
         draggable = o_place
         draggable.draggable, draggable.onmousedown = True, start
-        draggable.onmouseover = drag_over
-
+        #draggable.onmouseover = drag_over
 
     def build_drop(self, o_drop, **kwargs):
         def drop_over(ev):
@@ -162,7 +169,7 @@ class Gui:
             src_id = ev.data['text']
             elt = self.doc[src_id]
             self.doc[kwargs['action'](src_id)] <= elt
-        print('drag', o_drop, o_place)
+        print('drag', o_drop)
         droppable = self.doc[o_drop]
         droppable.onmouseover, droppable.onmouseup = drop_over, drop
 
@@ -205,8 +212,8 @@ class Gui:
         if True:  # ev.button == 2:
             ev.stopPropagation()
             ev.preventDefault()
-            #alert('menu')
-            self.menu.style.display = 'block'
+            #print('self menu:', self.menu)
+            self.s_menu.style.display = 'block'
             return False
 
     def _locate(self, place, element):
@@ -219,7 +226,7 @@ class Gui:
         return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
 
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
-        print(kwargs, self._filter(kwargs))
+        #print(kwargs, self._filter(kwargs))
         return self._locate(o_place, self.html.DIV(
             Id=o_Id, Class=o_Class, style=self._filter(kwargs)))
 
