@@ -83,7 +83,7 @@ class Gui:
         self.build_menu()
         self.rubber_start = self.build_rubberband()
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
-                                 drag=self.build_dragndrop)
+                                 drag=self.build_drag, drop=self.build_drop)
 
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
@@ -108,16 +108,19 @@ class Gui:
         self.img(self.menu, o_src=MENU % 'ad_objeto', s_padding='2px').onclick = rubber
         self.img(self.menu, o_src=MENU % 'ad_cenario', s_padding='2px').onclick = close
 
-    def build_dragndrop(self, o_place, o_drop, **kwargs):
+    def build_drag(self, o_place, **kwargs):
         def start(ev):
             print(ev, ev.data, ev.target.id)
             ev.data['text'] = ev.target.id
             # permitir que o objeto arrastado seja movido
             ev.data.effectAllowed = 'move'
+        print('drag', o_drop, o_place)
+        draggable = o_place
+        draggable.draggable, draggable.onmousedown = True, start
+        draggable.onmouseover = drag_over
 
-        def drag_over(ev):
-            ev.target.style.cursor = "pointer"
 
+    def build_drop(self, o_drop, **kwargs):
         def drop_over(ev):
             #ev.data.dropEffect = 'move'
             ev.preventDefault()
@@ -127,9 +130,7 @@ class Gui:
             elt = self.doc[src_id]
             self.doc[kwargs['action'](src_id)] <= elt
         print('drag', o_drop, o_place)
-        draggable, droppable = o_place, self.doc[o_drop]
-        draggable.draggable, draggable.onmousedown = True, start
-        draggable.onmouseover = drag_over
+        droppable = self.doc[o_drop]
         droppable.onmouseover, droppable.onmouseup = drop_over, drop
 
     def build_rubberband(self):

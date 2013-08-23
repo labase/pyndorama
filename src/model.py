@@ -58,6 +58,11 @@ class Thing:
         for item in self.items:
             item.deploy(employ=employ, **kwargs)
 
+    def visit(self, visiting):
+        """Visit across the structure. """
+        for item in self.items:
+            visiting(item)
+
     def _do_create(self):
         """Finish thing creation. """
         pass
@@ -135,13 +140,20 @@ class Dragger(Holder):
     """A drag decorator."""
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         Holder.__init__(self, o_Id=o_Id)
-        dropper, dragger = kwargs['o_drop'], kwargs['o_place']
+        dropper, dragger, self.kwargs = kwargs['o_drop'], kwargs['o_place'], kwargs
+        self.kwargs = {key, value for key, value in kwargs
+                       if key in 'o_drop '}
         self.dropper = Thing.ALL_THINGS[dropper]
+        self.dragger = Thing.ALL_THINGS[dragger]
         self.dropper.receive = self.receive
-        Thing.ALL_THINGS[dragger].enter = self.enter
+        self.dragger.visit(self.visiting)
         kwargs['action'] = self.dropper.receive
         self._add_properties(**kwargs)
         THETHING.append(self)
+
+    def visiting(self, visited):
+        visited._add_properties(**self.kwargs)
+        visited.enter = self.enter
 
     def receive(self, guest_id):
         return Thing.ALL_THINGS[guest_id].enter(self.dropper)
