@@ -6,7 +6,7 @@ body {
 	background-image: url("open-book.jpg");
 }
 #default{
-	
+
 }
 #book {
 	/* background-image: url("parch_backa.jpg");*/
@@ -19,6 +19,7 @@ body {
 	margin-left: auto;
 	/* opera does not like 'margin:20px auto' */
 	text-align:left;
+	position: relative
 	/* background-image: url("parch_backa.jpg");*/
 }
 

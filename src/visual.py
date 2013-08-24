@@ -15,6 +15,7 @@ Visual module with HTML5 factory and declarative builder.
 """
 ACTIV = "https://activufrj.nce.ufrj.br"
 SOURCE = 'mansao'
+SCENE = ACTIV + '/rest/studio/%s?size=G'
 TIMEOUT = 5  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
@@ -27,7 +28,7 @@ EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
         "EICA/3_1c.jpg", "EICA/3_2.png", "EICA/4_2c.jpg"]
 EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
          "jeppeto/Astrolabio.png", "jeppeto/astrolabiobserv.png"]
-E_MENU = lambda item: dict(o_src=MENUITEM % item, s_padding='2px', o_click="act_rubber")
+E_MENU = lambda item, ck="act_rubber": dict(o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
                 dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
@@ -95,10 +96,11 @@ class Gui:
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.main = self.doc["base"]
+        self.book = self.doc["book"]
         self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
         self.menu = self.build_menu(display='none')
-        self.s_menu = self.build_menu([E_MENU(item) for item in EICA],display='none')
-        self.p_menu = self.build_menu([E_MENU(item) for item in EICAP],display='none')
+        self.s_menu = self.build_menu([E_MENU(item, ck="act_scene") for item in EICA])
+        self.p_menu = self.build_menu([E_MENU(item, ck="act_prop") for item in EICAP])
         self.doc.oncontextmenu = self._menu
         self.rubber_start = self.build_rubberband()
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
@@ -126,12 +128,27 @@ class Gui:
             print('place rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
+    def act_scene(self, ev):
+        self.s_menu.style.display = 'none'
+        self.img(self.book, o_src=SCENE % ev.target.id, o_width=1100,
+                 o_Id="scn_"+ev.target.id, s_position='absolute', s_top='0px', s_left='0px')
+
+    def act_prop(self, ev):
+        self.p_menu.style.display = 'none'
+        self.img(self.book, o_src=SCENE % ev.target.id, o_Id="prp_"+ev.target.id,
+                 s_position='absolute', s_top=self.menuY, s_left=self.menuX)
+
     def scenes(self, ev):
         self.menu.style.display = 'none'
         self.s_menu.style.display = 'block'
+        self.s_menu.style.left = self.menuX
+        self.s_menu.style.top = self.menuY
 
     def props(self, ev):
+        self.menuitem = ev.target.id
         self.menu.style.display = 'none'
+        self.p_menu.style.left = self.menuX
+        self.p_menu.style.top = self.menuY
         self.p_menu.style.display = 'block'
 
     def act_rubber(self, ev):
@@ -140,11 +157,11 @@ class Gui:
         self.p_menu.style.display = 'none'
         self.doc["book"].bind('mousedown', self.rubber_start)
 
-    def build_menu(self, menu=MENU_DEFAULT, display="block"):
+    def build_menu(self, menu=MENU_DEFAULT, display="none"):
         _menu = self.div(
             self.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0')
-        print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
         [self.img(_menu, **kwargs).bind(
             "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
         return _menu
@@ -213,7 +230,9 @@ class Gui:
             ev.stopPropagation()
             ev.preventDefault()
             #print('self menu:', self.menu)
-            self.s_menu.style.display = 'block'
+            self.menu.style.display = 'block'
+            self.menu.style.left = self.menuX = ev.clientX
+            self.menu.style.top = self.menuY = ev.clientY
             return False
 
     def _locate(self, place, element):
