@@ -92,6 +92,8 @@ class Builder:
 class Gui:
     """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
     """
+    REV = {}
+
     def __init__(self, gui):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
@@ -128,15 +130,60 @@ class Gui:
             print('place rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
+    def make_id(self, targ_id):
+        oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
+        return "o%d_" % oid + targ_id
+
     def act_scene(self, ev):
         self.s_menu.style.display = 'none'
-        self.img(self.book, o_src=SCENE % ev.target.id, o_width=1100,
-                 o_Id="scn_"+ev.target.id, s_position='absolute', s_top='0px', s_left='0px')
+        self.img(
+            self.book, o_src=SCENE % ev.target.id, o_width=1100, s_top=0,
+            s_left=0, o_Id=self.make_id(ev.target.id), s_position='absolute')
 
     def act_prop(self, ev):
         self.p_menu.style.display = 'none'
-        self.img(self.book, o_src=SCENE % ev.target.id, o_Id="prp_"+ev.target.id,
-                 s_position='absolute', s_top=self.menuY, s_left=self.menuX)
+        offx, offy = self.book.offsetLeft, self.book.offsetTop
+        self.img(self.book, o_src=SCENE % ev.target.id, o_Id=self.make_id(ev.target.id),
+                 s_position='absolute', s_float='left', s_top=self.menuY-offy,
+                 s_left=self.menuX-offx).onclick = self.sel_prop
+
+    def sel_prop(self, ev):
+        prop = self.doc[ev.target.id]
+        prop_box = self.doc["propbox"]
+
+        def start(ev):
+            self.offx = ev.x - self.book.offsetLeft - prop_box.offsetLeft
+            self.offy = ev.y - self.book.offsetTop - prop_box.offsetTop
+            print(ev, ev.data, ev.target.id, self.offx, self.offy)
+            ev.data['text'] = ev.target.id
+            ev.stopPropagation()
+            # permitir que o objeto arrastado seja movido
+            ev.data.effectAllowed = 'move'
+
+        def drop(ev):
+            offx, offy = self.book.offsetLeft, self.book.offsetTop
+            self.book <= prop
+            prop.style.left, prop.style.top = ev.x - offx-self.offx, ev.y - offy - self.offy
+            self.book.unbind('drop')
+            self.main <= prop_box
+            ev.preventDefault()
+
+        def dragover(ev):
+            #print(ev, ev.x, ev.y)
+            ev.data.effectAllowed = 'move'
+            ev.preventDefault()
+        x, y, w, h = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight
+        print (ev.target.id, x, y, w, h)
+        #prop.unbind('click')
+        prop_box.bind('dragstart', start)
+        prop_box.style.left, prop_box.style.top, prop_box.style.width, prop_box.style.height = x, y, w, h
+        self.book <= prop_box
+        self.book.bind('drop', drop)
+        self.book.bind('dragover', dragover)
+        prop.style.left, prop.style.top = 0, 0
+        prop_box <= prop
+        #self.div(self.book, s_width=w, s_height=h, s_top=y, s_left=x, s_position='absolute',
+        #         s_backgroundColor="white")  # , s_opacity=0.5)
 
     def scenes(self, ev):
         self.menu.style.display = 'none'

@@ -37,6 +37,10 @@ Pyndorama - Educational game creation
     <body onLoad="brython(1)" class="main">
         <div id="doc_id" class="hidden_display">{{ doc_id }}</div>
         <div id="base" class="base"></div>
+        <div id="propbox" draggable="true"
+             style="position: absolute; background-color: white; opacity: 0.3"></div>
+        <div id="propsize" draggable="true"
+             style="position: absolute; background-color: black; opacity: 0.4"></div>
         <!-- -->
         <div id="book" class="book">
             <div id="text" class="text"></div>
