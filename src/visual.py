@@ -150,8 +150,19 @@ class Gui:
     def sel_prop(self, ev):
         prop = self.doc[ev.target.id]
         prop_box = self.doc["propbox"]
+        prop_size = self.doc["propsize"]
 
-        def start(ev):
+        def dragstart(ev):
+            prop_box.unbind('dragstart', dragstart)
+            prop_size.unbind('dragstart', sizestart)
+            self.book.bind('drop', dropmove)
+            _start(ev)
+
+        def sizestart(ev):
+            self.book.bind('drop', dropsize)
+            _start(ev)
+
+        def _start(ev):
             self.offx = ev.x - self.book.offsetLeft - prop_box.offsetLeft
             self.offy = ev.y - self.book.offsetTop - prop_box.offsetTop
             print(ev, ev.data, ev.target.id, self.offx, self.offy)
@@ -160,25 +171,46 @@ class Gui:
             # permitir que o objeto arrastado seja movido
             ev.data.effectAllowed = 'move'
 
-        def drop(ev):
+        def dropmove(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
             self.book <= prop
             prop.style.left, prop.style.top = ev.x - offx-self.offx, ev.y - offy - self.offy
             self.book.unbind('drop')
-            self.main <= prop_box
+            prop_box.style.left = -90000
+            prop_size.style.left = -90000
             ev.preventDefault()
+
+        def dropsize(ev):
+            ev.preventDefault()
+            ev.stopPropagation()
+            self.book.unbind('drop')
+            offx, offy = self.book.offsetLeft, self.book.offsetTop
+            self.book <= prop
+            cx = prop_box.offsetLeft + prop_box.offsetWidth // 2
+            cy = prop_box.offsetTop + prop_box.offsetHeight // 2
+            w, h = abs(ev.x - offx - cx), abs(ev.y - offy - cy)
+            x, y = cx - w, cy - h
+            #w, h = abs(ev.x - cx), abs(y - cy)
+            prop_box.style.left = -90000
+            prop_size.style.left = -90000
+            print('dropsize', x, y, w, h)
+            prop.style.left, prop.style.top, prop.style.width, prop.style.height = x, y, 2*w, 2*h
+            prop_box.unbind('dragstart', dragstart)
+            prop_size.unbind('dragstart', sizestart)
 
         def dragover(ev):
             #print(ev, ev.x, ev.y)
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
-        x, y, w, h = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight
+        x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
         print (ev.target.id, x, y, w, h)
         #prop.unbind('click')
-        prop_box.bind('dragstart', start)
+        prop_box.bind('dragstart', dragstart)
         prop_box.style.left, prop_box.style.top, prop_box.style.width, prop_box.style.height = x, y, w, h
         self.book <= prop_box
-        self.book.bind('drop', drop)
+        prop_size.bind('dragstart', sizestart)
+        prop_size.style.left, prop_size.style.top, prop_size.style.width, prop_size.style.height = x-5, y-5, s, s
+        self.book <= prop_size
         self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
         prop_box <= prop
