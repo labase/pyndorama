@@ -28,7 +28,8 @@ EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
         "EICA/3_1c.jpg", "EICA/3_2.png", "EICA/4_2c.jpg"]
 EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
          "jeppeto/Astrolabio.png", "jeppeto/astrolabiobserv.png"]
-E_MENU = lambda item, ck="act_rubber": dict(o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck)
+E_MENU = lambda item, ck="act_rubber": dict(
+    o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
                 dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
@@ -89,8 +90,8 @@ class Builder:
         self.model.deploy(self.gui.employ)
 
 
-class Gui:
-    """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
+class GuiEvent:
+    """Deal with incoming html events. :ref:`gui_event`
     """
     REV = {}
 
@@ -142,10 +143,10 @@ class Gui:
 
     def act_prop(self, ev):
         self.p_menu.style.display = 'none'
-        offx, offy = self.book.offsetLeft, self.book.offsetTop
-        self.img(self.book, o_src=SCENE % ev.target.id, o_Id=self.make_id(ev.target.id),
+        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
+        self.img(self.book, o_src=SCENE % ev.target.id, o_Id=self.make_id(tid),
                  s_position='absolute', s_float='left', s_top=self.menuY-offy,
-                 s_left=self.menuX-offx).onclick = self.sel_prop
+                 s_left=self.menuX-offx, o_title=tid).onclick = self.sel_prop
 
     def sel_prop(self, ev):
         prop = self.doc[ev.target.id]
@@ -236,15 +237,6 @@ class Gui:
         self.p_menu.style.display = 'none'
         self.doc["book"].bind('mousedown', self.rubber_start)
 
-    def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        _menu = self.div(
-            self.doc, s_position='absolute', s_top='50%', s_left='50%',
-            s_display=display, s_border='1px solid #d0d0d0')
-        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [self.img(_menu, **kwargs).bind(
-            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
-        return _menu
-
     def build_drag(self, o_place, **kwargs):
         def start(ev):
             #print(ev, ev.data, ev.target.id)
@@ -314,6 +306,19 @@ class Gui:
             self.menu.style.top = self.menuY = ev.clientY
             return False
 
+
+class Gui(GuiEvent):
+    """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
+    """
+    def build_menu(self, menu=MENU_DEFAULT, display="none"):
+        _menu = self.div(
+            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+            s_display=display, s_border='1px solid #d0d0d0')
+        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.img(_menu, **kwargs).bind(
+            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
+        return _menu
+
     def _locate(self, place, element):
         locus = place if place else self.main
         locus <= element
@@ -337,9 +342,9 @@ class Gui:
             frameBorder=o_frameBorder, src=o_src))
 
     def img(
-            self, o_place=None, o_src="", o_width='',
+            self, o_place=None, o_src="", o_width='', o_title='', o_alt="",
             o_height='', o_Id='', o_Class='deafault', **kwargs):
         """Html image. """
         return self._locate(o_place, self.html.IMG(
-            Id=o_Id, width=o_width, height=o_height, Class=o_Class,
-            src=o_src, style=self._filter(kwargs)))
+            Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
+            title=o_title, src=o_src, style=self._filter(kwargs)))

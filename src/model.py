@@ -5,13 +5,14 @@ Pyndorama - Model
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/08/15
+:Date: 2013/08/25
 :Status: This is a "work in progress"
-:Revision: 0.3
+:Revision: 0.4
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
 Game model comprising of Loci and Actors
+0.4 Add commands for game action
 """
 THETHING = None
 
@@ -141,7 +142,7 @@ class Dragger(Holder):
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         Holder.__init__(self, o_Id=o_Id)
         dropper, dragger, self.kwargs = kwargs['o_drop'], kwargs['o_place'], kwargs
-        self.kwargs = {key, value for key, value in kwargs
+        self.kwargs = {key: value for key, value in kwargs
                        if key in 'o_drop '}
         self.dropper = Thing.ALL_THINGS[dropper]
         self.dragger = Thing.ALL_THINGS[dragger]
@@ -161,6 +162,31 @@ class Dragger(Holder):
     def enter(self, host):
         self.container = host
         return self.o_Id
+
+
+class Command:
+    """A commom element any kind of action."""
+    SCRIPT = []
+
+    def __init__(self, fab=THETHING, o_part=None, o_place=None, **kwargs):
+        Command.SCRIPT.append(self)
+        #print ("Command init:", fab, part, o_Id)
+        self.create(fab=fab, part=o_part, place=o_place, **kwargs)
+
+    def create(self, fab=None, part=None, place=None, **kwargs):
+        """Fabricate and return a given part."""
+        pass
+
+
+class DoAdd:
+    """Add an element to another."""
+    def __init__(self, fab=THETHING, part=None, o_Id=None, **kwargs):
+        self.items = []
+        #print ("Thing init:", fab, part, o_Id)
+        self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+
+    def create(self, fab=None, part=None, place=None, **kwargs):
+        """Fabricate and return a given part."""
 
 
 def init():
