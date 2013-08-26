@@ -41,7 +41,7 @@ class Thing:
         #print ("employ:", o_part, o_Id, kwargs)
         try:
             thing_class = Thing.INVENTORY[o_part]
-            thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
+            return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
             print ("error creating %s id = %s" % (o_part, o_Id))
 
@@ -168,25 +168,25 @@ class Command:
     """A commom element any kind of action."""
     SCRIPT = []
 
-    def __init__(self, fab=THETHING, o_part=None, o_place=None, **kwargs):
+    def __init__(self, fab=THETHING, o_part=None, o_Id=None, o_place=None, **kwargs):
         Command.SCRIPT.append(self)
         #print ("Command init:", fab, part, o_Id)
         self.create(fab=fab, part=o_part, place=o_place, **kwargs)
 
-    def create(self, fab=None, part=None, place=None, **kwargs):
+    def create(self, fab=None, part=None, o_Id=None, place=None, **kwargs):
         """Fabricate and return a given part."""
         pass
 
 
 class DoAdd:
     """Add an element to another."""
-    def __init__(self, fab=THETHING, part=None, o_Id=None, **kwargs):
-        self.items = []
-        #print ("Thing init:", fab, part, o_Id)
-        self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+    def __init__(self, fab=THETHING, o_part=None, o_Id=None, o_place=None, **kwargs):
+        Command.__init__(self, fab=fab, o_part=o_part, o_Id=o_Id, o_place=o_place, **kwargs)
 
-    def create(self, fab=None, part=None, place=None, **kwargs):
+    def create(self, fab=None, part=None, o_Id=None, place=None, **kwargs):
         """Fabricate and return a given part."""
+        element = fab.employ(part, o_Id, place, **kwargs)
+        element.deploy()
 
 
 def init():

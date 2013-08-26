@@ -34,6 +34,8 @@ STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
                 dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
 DEFAULT = [
+]
+NODEFAULT = [
     dict(o_part='Locus', o_Id='13081200990010', o_gcomp='iframe', o_place='text',
          o_width=450, o_height=600,
          o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
