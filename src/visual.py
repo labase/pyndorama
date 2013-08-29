@@ -87,6 +87,7 @@ class Builder:
 
     def build_all(self, gui):
         self.gui = gui
+        self.gui.control = self.model
         self.build_deploy(DEFAULT)
         print(self.model.items)
         self.model.deploy(self.gui.employ)
@@ -139,9 +140,20 @@ class GuiEvent:
 
     def act_scene(self, ev):
         self.s_menu.style.display = 'none'
-        self.img(
-            self.book, o_src=SCENE % ev.target.id, o_width=1100, s_top=0,
-            s_left=0, o_Id=self.make_id(ev.target.id), s_position='absolute')
+        #self.img(
+        #    self.book, o_src=SCENE % ev.target.id, o_width=1100, s_top=0,
+        #    s_left=0, o_Id=self.make_id(ev.target.id), s_position='absolute')
+        oid = self.make_id(ev.target.id)
+        kwargs = dict(
+            s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
+            s_width=1100, s_height=800, s_top=0, 
+            s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
+        )
+        scene = self.div(
+            self.book, o_Class="bookpage", o_Id=oid, **kwargs)
+        scene.style.backgroundSize = "100% 100%"
+        self.control.activate(
+            o_cmd="DoAdd", o_part="Locus", o_Id=oid, o_place=self.book.id, **kwargs)
 
     def act_prop(self, ev):
         self.p_menu.style.display = 'none'

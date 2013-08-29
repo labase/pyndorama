@@ -21,6 +21,7 @@ class Thing:
     """A commom element for every other element."""
     ALL_THINGS = {}
     INVENTORY = {}
+    CONTROL = {}
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         self.items = []
@@ -35,6 +36,15 @@ class Thing:
         (fab or self).register(o_Id or 13081299999999, self)
         self._add_properties(**kwargs)
         self._do_create()
+
+    def activate(self, o_cmd=None, o_part=None, o_Id=None, **kwargs):
+        """Activate a given command."""
+        #print ("employ:", o_part, o_Id, kwargs)
+        try:
+            thing_class = Thing.CONTROL[o_cmd]
+            return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
+        except Exception:
+            print ("error creating %s id = %s" % (o_part, o_Id))
 
     def employ(self, o_part=None, o_Id=None, **kwargs):
         """Fabricate and locate a given part."""
@@ -164,7 +174,7 @@ class Dragger(Holder):
         return self.o_Id
 
 
-class Command:
+class Command(Thing):
     """A commom element any kind of action."""
     SCRIPT = []
 
@@ -178,7 +188,7 @@ class Command:
         pass
 
 
-class DoAdd:
+class DoAdd(Command):
     """Add an element to another."""
     def __init__(self, fab=THETHING, o_part=None, o_Id=None, o_place=None, **kwargs):
         Command.__init__(self, fab=fab, o_part=o_part, o_Id=o_Id, o_place=o_place, **kwargs)
@@ -191,8 +201,9 @@ class DoAdd:
 
 def init():
     global THETHING
-    THETHING = Thing()
+    THETHING = Thing(o_Id='book')
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
                                 Grid=Grid, Dragger=Dragger))
+    Thing.CONTROL.update(dict(DoAdd=DoAdd))
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING
