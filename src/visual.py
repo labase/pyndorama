@@ -127,7 +127,7 @@ class GuiEvent:
 
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
-        #print ('employ', o_place, o_gcomp)
+        print ('employ', o_place, o_gcomp, kwargs)
         try:
             place = self.doc[o_place]
         except Exception:
@@ -146,14 +146,14 @@ class GuiEvent:
         oid = self.make_id(ev.target.id)
         kwargs = dict(
             s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
-            s_width=1100, s_height=800, s_top=0, 
+            s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
             s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
         )
-        scene = self.div(
-            self.book, o_Class="bookpage", o_Id=oid, **kwargs)
-        scene.style.backgroundSize = "100% 100%"
+        #scene = self.div(
+        #    self.book, o_Class="bookpage", o_Id=oid, **kwargs)
+        #scene.style.backgroundSize = "100% 100%"
         self.control.activate(
-            o_cmd="DoAdd", o_part="Locus", o_Id=oid, o_place=self.book.id, **kwargs)
+            self.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid, **kwargs)
 
     def act_prop(self, ev):
         self.p_menu.style.display = 'none'
@@ -333,7 +333,10 @@ class Gui(GuiEvent):
             "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
         return _menu
 
-    def _locate(self, place, element):
+    def _locate(self, place, element, kwargs=[]):
+        #print(kwargs)
+        if 's_backgroundSize' in kwargs:
+            element.style.backgroundSize = kwargs['s_backgroundSize']
         locus = place if place else self.main
         locus <= element
         return element
@@ -345,7 +348,7 @@ class Gui(GuiEvent):
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
         return self._locate(o_place, self.html.DIV(
-            Id=o_Id, Class=o_Class, style=self._filter(kwargs)))
+            Id=o_Id, Class=o_Class, style=self._filter(kwargs)), kwargs)
 
     def iframe(
         self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",

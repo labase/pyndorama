@@ -37,14 +37,15 @@ class Thing:
         self._add_properties(**kwargs)
         self._do_create()
 
-    def activate(self, o_cmd=None, o_part=None, o_Id=None, **kwargs):
+    def activate(self, o_emp=None, o_cmd=None, o_part=None, o_Id=None, o_place=None, **kwargs):
         """Activate a given command."""
-        #print ("employ:", o_part, o_Id, kwargs)
         try:
+            kwargs['o_place'] = o_place
+            #print ("activate:", o_part, o_Id, o_place, kwargs)
             thing_class = Thing.CONTROL[o_cmd]
-            return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
+            return thing_class(o_emp, fab=self, o_part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
-            print ("error creating %s id = %s" % (o_part, o_Id))
+            print ("error activating %s id = %s" % (o_part, o_Id))
 
     def employ(self, o_part=None, o_Id=None, **kwargs):
         """Fabricate and locate a given part."""
@@ -178,25 +179,26 @@ class Command(Thing):
     """A commom element any kind of action."""
     SCRIPT = []
 
-    def __init__(self, fab=THETHING, o_part=None, o_Id=None, o_place=None, **kwargs):
+    def __init__(self, employ, fab=THETHING, o_part=None, o_Id=None, **kwargs):
         Command.SCRIPT.append(self)
-        #print ("Command init:", fab, part, o_Id)
-        self.create(fab=fab, part=o_part, place=o_place, **kwargs)
+        #print ("Command init:", fab, o_part, o_Id, kwargs)
+        self.create(employ, fab=fab, part=o_part, **kwargs)
 
-    def create(self, fab=None, part=None, o_Id=None, place=None, **kwargs):
+    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
         pass
 
 
 class DoAdd(Command):
     """Add an element to another."""
-    def __init__(self, fab=THETHING, o_part=None, o_Id=None, o_place=None, **kwargs):
-        Command.__init__(self, fab=fab, o_part=o_part, o_Id=o_Id, o_place=o_place, **kwargs)
+    def __init__(self, employ, fab=THETHING, o_part=None, o_Id=None, **kwargs):
+        Command.__init__(self, employ, fab=fab, o_part=o_part, o_Id=o_Id, **kwargs)
 
-    def create(self, fab=None, part=None, o_Id=None, place=None, **kwargs):
+    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
-        element = fab.employ(part, o_Id, place, **kwargs)
-        element.deploy()
+        element = fab.employ(part, o_Id, **kwargs)
+        #print ("DoAdd create:", fab, part, o_Id, element, kwargs)
+        element.deploy(employ)
 
 
 def init():
