@@ -201,11 +201,18 @@ class DoAdd(Command):
         element.deploy(employ)
 
 
+class DoList(Command):
+    """List elements from another element."""
+    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Fabricate and return a given part."""
+        fab.deploy(employ)
+
+
 def init():
     global THETHING
     THETHING = Thing(o_Id='book')
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
                                 Grid=Grid, Dragger=Dragger))
-    Thing.CONTROL.update(dict(DoAdd=DoAdd))
+    Thing.CONTROL.update(dict(DoAdd=DoAdd, DoList=DoList))
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING

@@ -93,6 +93,39 @@ class Builder:
         self.model.deploy(self.gui.employ)
 
 
+class Menu(object):
+    MENU = {}
+
+    def __init__(self, seed=MENU_DEFAULT):
+        self.build_menu(seed)
+
+    def build_menu(self, menu=MENU_DEFAULT, display="none"):
+        _menu = self.div(
+            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+            s_display=display, s_border='1px solid #d0d0d0')
+        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.img(_menu, **kwargs).bind(
+            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
+        return _menu
+
+    def action(self, event):
+        menu = Menu.MENU[event.target.id]
+        self.menu.style.display = 'none'
+        self.s_menu.style.display = 'block'
+        self.s_menu.style.left = self.menuX
+        self.s_menu.style.top = self.menuY
+
+    def _menu(self, ev):
+        if True:  # ev.button == 2:
+            ev.stopPropagation()
+            ev.preventDefault()
+            #print('self menu:', self.menu)
+            self.menu.style.display = 'block'
+            self.menu.style.left = self.menuX = ev.clientX
+            self.menu.style.top = self.menuY = ev.clientY
+            return False
+
+
 class GuiEvent:
     """Deal with incoming html events. :ref:`gui_event`
     """

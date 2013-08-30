@@ -26,11 +26,14 @@ Pyndorama - Educational game creation
         <script type="text/python" src="control.py">
         </script>
         <script type="text/python">
+            from local_storage import storage
+            import json
             import svg
             import html
             import time
             class Brython:
-                DOC, SVG, HTML, AJAX, WIN, TIME = doc, svg, html, ajax, win, time
+                DOC, SVG, HTML, AJAX, WIN = doc, svg, html, ajax, win
+                STORAGE, JSON, TIME = storage, json, time
             main(Brython)
         </script>
     </head>
