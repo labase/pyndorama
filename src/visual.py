@@ -96,22 +96,25 @@ class Builder:
 class Menu(object):
     MENU = {}
 
-    def __init__(self, parent, item, event="click"):
+    def __init__(self, gui, parent=None, item=None, menu=None, event="click"):
         #self.build_menu(seed)
+        self.gui = gui
         self.parent = parent
         self.item = item
         item and self.item.bind(event, self.action)
+        menu and self.build_menu(menu)
 
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        self.menu = self.div(
-            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+        print ("build_menu:", self.gui.div)
+        self.menu = self.gui.div(
+            self.gui.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0')
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [Menu(self.menu, self.img(self.menu, **kwargs)) for kwargs in menu]
+        [Menu(self.gui, self.menu, self.gui.img(self.menu, **kwargs)) for kwargs in menu]
         return self.menu
 
     def action(self, event):
-        menu = Menu.MENU[event.target.id]
+        #menu = Menu.MENU[event.target.id]
         self.parent.style.display = 'none'
         self.item.style.display = 'block'
         self.item.style.left = self.parent.menuX
@@ -128,7 +131,53 @@ class Menu(object):
             return False
 
 
-class GuiEvent:
+class GuiDraw(object):
+    """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
+    """
+    def build_menu(self, menu=MENU_DEFAULT, display="none"):
+        _menu = self.div(
+            self.doc, s_position='absolute', s_top='50%', s_left='50%',
+            s_display=display, s_border='1px solid #d0d0d0')
+        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.img(_menu, **kwargs).bind(
+            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
+        return _menu
+
+    def _locate(self, place, element, kwargs=[]):
+        #print(kwargs)
+        if 's_backgroundSize' in kwargs:
+            element.style.backgroundSize = kwargs['s_backgroundSize']
+        locus = place if place else self.main
+        locus <= element
+        return element
+
+    def _filter(self, args):
+        #print(args)
+        return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
+
+    def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
+        #print(kwargs, self._filter(kwargs))
+        return self._locate(o_place, self.html.DIV(
+            Id=o_Id, Class=o_Class, style=self._filter(kwargs)), kwargs)
+
+    def iframe(
+        self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
+            o_frameBorder=0, o_src="", **kwarg):
+        """Html iframe."""
+        return self._locate(o_place, self.html.IFRAME(
+            Id=o_Id, width=o_width, height=o_height, Class=o_Class,
+            frameBorder=o_frameBorder, src=o_src))
+
+    def img(
+            self, o_place=None, o_src="", o_width='', o_title='', o_alt="",
+            o_height='', o_Id='', o_Class='deafault', **kwargs):
+        """Html image. """
+        return self._locate(o_place, self.html.IMG(
+            Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
+            title=o_title, src=o_src, style=self._filter(kwargs)))
+
+
+class Gui(GuiDraw):
     """Deal with incoming html events. :ref:`gui_event`
     """
     REV = {}
@@ -139,10 +188,14 @@ class GuiEvent:
         self.main = self.doc["base"]
         self.book = self.doc["book"]
         self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
-        self.menu = self.build_menu(display='none')
-        self.s_menu = self.build_menu([E_MENU(item, ck="act_scene") for item in EICA])
-        self.p_menu = self.build_menu([E_MENU(item, ck="act_prop") for item in EICAP])
-        self.doc.oncontextmenu = self._menu
+        #self.menu = self.build_menu(display='none')
+        #self.s_menu = self.build_menu([E_MENU(item, ck="act_scene") for item in EICA])
+        #self.p_menu = self.build_menu([E_MENU(item, ck="act_prop") for item in EICAP])
+        #self.doc.oncontextmenu = self._menu
+        self.menu = Menu(self, menu=MENU_DEFAULT)
+        #self.s_menu = Menu(
+        #    self, self.menu.menu, menu=[E_MENU(item, ck="act_scene") for item in EICA] )
+        self.doc.oncontextmenu = self.menu.context
         self.rubber_start = self.build_rubberband()
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
@@ -355,48 +408,3 @@ class GuiEvent:
             self.menu.style.top = self.menuY = ev.clientY
             return False
 
-
-class Gui(GuiEvent):
-    """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
-    """
-    def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        _menu = self.div(
-            self.doc, s_position='absolute', s_top='50%', s_left='50%',
-            s_display=display, s_border='1px solid #d0d0d0')
-        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [self.img(_menu, **kwargs).bind(
-            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
-        return _menu
-
-    def _locate(self, place, element, kwargs=[]):
-        #print(kwargs)
-        if 's_backgroundSize' in kwargs:
-            element.style.backgroundSize = kwargs['s_backgroundSize']
-        locus = place if place else self.main
-        locus <= element
-        return element
-
-    def _filter(self, args):
-        #print(args)
-        return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
-
-    def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
-        #print(kwargs, self._filter(kwargs))
-        return self._locate(o_place, self.html.DIV(
-            Id=o_Id, Class=o_Class, style=self._filter(kwargs)), kwargs)
-
-    def iframe(
-        self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
-            o_frameBorder=0, o_src="", **kwarg):
-        """Html iframe."""
-        return self._locate(o_place, self.html.IFRAME(
-            Id=o_Id, width=o_width, height=o_height, Class=o_Class,
-            frameBorder=o_frameBorder, src=o_src))
-
-    def img(
-            self, o_place=None, o_src="", o_width='', o_title='', o_alt="",
-            o_height='', o_Id='', o_Class='deafault', **kwargs):
-        """Html image. """
-        return self._locate(o_place, self.html.IMG(
-            Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
-            title=o_title, src=o_src, style=self._filter(kwargs)))
