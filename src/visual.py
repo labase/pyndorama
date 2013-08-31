@@ -96,26 +96,28 @@ class Builder:
 class Menu(object):
     MENU = {}
 
-    def __init__(self, seed=MENU_DEFAULT):
-        self.build_menu(seed)
+    def __init__(self, parent, item, event="click"):
+        #self.build_menu(seed)
+        self.parent = parent
+        self.item = item
+        item and self.item.bind(event, self.action)
 
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        _menu = self.div(
+        self.menu = self.div(
             self.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0')
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [self.img(_menu, **kwargs).bind(
-            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
-        return _menu
+        [Menu(self.menu, self.img(self.menu, **kwargs)) for kwargs in menu]
+        return self.menu
 
     def action(self, event):
         menu = Menu.MENU[event.target.id]
-        self.menu.style.display = 'none'
-        self.s_menu.style.display = 'block'
-        self.s_menu.style.left = self.menuX
-        self.s_menu.style.top = self.menuY
+        self.parent.style.display = 'none'
+        self.item.style.display = 'block'
+        self.item.style.left = self.parent.menuX
+        self.item.style.top = self.parent.menuY
 
-    def _menu(self, ev):
+    def context(self, ev):
         if True:  # ev.button == 2:
             ev.stopPropagation()
             ev.preventDefault()
