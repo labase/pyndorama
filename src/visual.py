@@ -5,9 +5,9 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/08/16 $
+:Date: $Date: 2013/08/31 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.4 $
+:Revision: $Revision: 0.1.6 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
@@ -171,12 +171,13 @@ class GuiDraw(object):
             frameBorder=o_frameBorder, src=o_src))
 
     def img(
-            self, o_place=None, o_src="", o_width='', o_title='', o_alt="",
-            o_height='', o_Id='', o_Class='deafault', **kwargs):
+            self, o_place=None, o_src="", o_width='', o_height='', o_title='', o_alt="",
+            o_Id='', o_Class='deafault', **kwargs):
         """Html image. """
         return self._locate(o_place, self.html.IMG(
             Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
             title=o_title, src=o_src, style=self._filter(kwargs)))
+JEPPETO = "__J_E_P_P_E_T_O__"
 
 
 class Gui(GuiDraw):
@@ -187,16 +188,51 @@ class Gui(GuiDraw):
     def __init__(self, gui):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
+        self.storage, self.json = gui.STORAGE, gui.JSON
         self.main = self.doc["base"]
         self.book = self.doc["book"]
-        self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
+        self.lst = self.div(self.book, s_position='absolute', s_left=220,
+                            s_top=510, s_width=300, s_display='none')
+        #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
         self.rmenu = Menu(self, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
         self.doc.oncontextmenu = self.rmenu.contextmenu
         self.pmenu = Menu(self, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
         self.smenu = Menu(self, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
         self.rubber_start = self.build_rubberband()
+        self.img(
+            self.book, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
+            s_position='absolute', s_left=0).onclick = self.start
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
+
+    def start(self, ev):
+        lst = self.lst
+
+        def nameit(ev):
+            self.game = ev.target.id[5:]
+            print('nameit', self.game)
+            lst.style.display = 'none'
+        self.book <= lst
+
+        if JEPPETO not in self.storage:
+            self.storage[JEPPETO] = self.json.dumps([])
+        games = self.json.loads(self.storage[JEPPETO])
+        print (games, len(games))
+        if ev.clientX > 500 or (len(games) < 1):
+            self.game = self.win.prompt('Nome do novo jogo', 'Jeppeto_%d' % len(games))
+            if not self.game:
+                return False
+            self.storage[JEPPETO] = self.json.dumps(games + [self.game])
+        else:
+            for game in games:
+                inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
+                               s_fontFamily='Arial Black', s_fontSize=40)
+                inp.text = game
+                inp.style.fontFamily = 'Arial'
+                inp.style.fontSize = '30px'
+                inp.bind('click', nameit)
+                lst <= inp
+            lst.style.display = 'block'
 
     def receive(self, url, default, deliver):
         self.status = 555
@@ -317,19 +353,6 @@ class Gui(GuiDraw):
         prop_box <= prop
         #self.div(self.book, s_width=w, s_height=h, s_top=y, s_left=x, s_position='absolute',
         #         s_backgroundColor="white")  # , s_opacity=0.5)
-
-    def scenes(self, ev):
-        self.menu.style.display = 'none'
-        self.s_menu.style.display = 'block'
-        self.s_menu.style.left = self.menuX
-        self.s_menu.style.top = self.menuY
-
-    def props(self, ev):
-        self.menuitem = ev.target.id
-        self.menu.style.display = 'none'
-        self.p_menu.style.left = self.menuX
-        self.p_menu.style.top = self.menuY
-        self.p_menu.style.display = 'block'
 
     def act_rubber(self, ev):
         print('menu:', ev)

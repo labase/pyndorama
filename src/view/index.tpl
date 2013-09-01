@@ -6,9 +6,9 @@ Pyndorama - Educational game creation
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/07/16
+:Date: 2013/08/31
 :Status: This is a "work in progress"
-:Revision: 0.1.0
+:Revision: 0.1.1
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 -->
@@ -26,11 +26,14 @@ Pyndorama - Educational game creation
         <script type="text/python" src="control.py">
         </script>
         <script type="text/python">
+            from local_storage import storage
+            import json
             import svg
             import html
             import time
             class Brython:
-                DOC, SVG, HTML, AJAX, WIN, TIME = doc, svg, html, ajax, win, time
+                DOC, SVG, HTML, AJAX, WIN = doc, svg, html, ajax, win
+                STORAGE, JSON, TIME = storage, json, time
             main(Brython)
         </script>
     </head>
