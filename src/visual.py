@@ -177,7 +177,9 @@ class GuiDraw(object):
         return self._locate(o_place, self.html.IMG(
             Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
             title=o_title, src=o_src, style=self._filter(kwargs)))
-JEPPETO = "__J_E_P_P_E_T_O__"
+JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
+KWA = dict(s_position='absolute', s_opacity=0.1, s_top=180,
+           o_src=MENUPX % 'drawing', o_width=400, o_height=400)
 
 
 class Gui(GuiDraw):
@@ -201,28 +203,45 @@ class Gui(GuiDraw):
         self.rubber_start = self.build_rubberband()
         self.img(
             self.book, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
-            s_position='absolute', s_left=0).onclick = self.start
+            s_position='absolute', s_left=0)
+        self.img(self.book, o_Id=LGM, s_left=120, **KWA).onclick = self.start
+        self.img(self.book, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
+
+    def load(self, cmd=None):
+        def render(o_gcomp, o_place, **kwargs):
+            self.control.activate(
+                self.deliverables[o_gcomp], o_place=self.doc[o_place], **kwargs)
+
+        commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
+        #print('load:', self.control, commands)
+        [render(**kwargs) for kwargs in commands]
+
+    def save(self, cmd):
+        cmd['o_place'] = cmd.pop('o_place').id
+        self.storage['_JPT_'+self.game] = self.json.dumps(
+            self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
     def start(self, ev):
         lst = self.lst
 
         def nameit(ev):
             self.game = ev.target.id[5:]
-            print('nameit', self.game)
+            #print('nameit', self.game)
             lst.style.display = 'none'
+            self.load()
         self.book <= lst
 
         if JEPPETO not in self.storage:
             self.storage[JEPPETO] = self.json.dumps([])
         games = self.json.loads(self.storage[JEPPETO])
-        print (games, len(games))
-        if ev.clientX > 500 or (len(games) < 1):
-            self.game = self.win.prompt('Nome do novo jogo', 'Jeppeto_%d' % len(games))
-            if not self.game:
-                return False
+        #print (games, len(games))
+        default_name, ask = 'Jeppeto_%d' % len(games), 'Nome do novo jogo'
+        if (ev.target.id == 'NEW_GAME') or (len(games) < 1):
+            self.game = self.win.prompt(ask, default_name) or default_name
             self.storage[JEPPETO] = self.json.dumps(games + [self.game])
+            self.storage['_JPT_'+self.game] = self.json.dumps([])
         else:
             for game in games:
                 inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
@@ -271,12 +290,13 @@ class Gui(GuiDraw):
     def ad_cenario(self, ev, menu):
         oid = self.make_id(ev.target.id)
         kwargs = dict(
+            o_emp=self.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid,
             s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
             s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
             s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
         )
-        self.control.activate(
-            self.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid, **kwargs)
+        self.control.activate(**kwargs)
+        self.save(kwargs)
 
     def ad_objeto(self, ev, menu):
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
