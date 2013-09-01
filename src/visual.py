@@ -21,7 +21,7 @@ GROUP = 'EICA'
 REPO = "/studio/%s"
 IMG = 'http://j.mp/aegadian_sea'
 SHIP = 'view/Trireme_1.png'
-MENU = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
+MENUPX = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
 EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
@@ -31,8 +31,9 @@ EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
-MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
-                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
+#NO_MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
+#                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
+MENU_DEFAULT = ['ad_objeto', 'ad_cenario']
 DEFAULT = [
 ]
 NODEFAULT = [
@@ -94,55 +95,56 @@ class Builder:
 
 
 class Menu(object):
+    """Menu hierarchy builder with flyweight menuitem. :ref:`menu`
+    """
     MENU = {}
 
-    def __init__(self, gui, parent=None, item=None, menu=None, event="click"):
-        #self.build_menu(seed)
-        self.gui = gui
-        self.parent = parent
-        self.item = item
-        item and self.item.bind(event, self.action)
+    def __init__(self, gui, originator, menu=None,
+                 command='menu', prefix=MENUPX, event="click"):
+        self.gui, self.item, self.prefix = gui, originator, prefix
+        self.command, self.prefix = command, prefix
+        self.originator = originator
         menu and self.build_menu(menu)
 
+    def build_item(self, item):
+        #print('build_item', self.prefix, item)
+        pr = self.prefix % item
+        kwargs = dict(o_Id=item, o_src=pr, s_padding='2px', o_title=item)
+        menu_item = self.gui.img(self.menu, **kwargs)
+        menu_item.bind("click", self.click)
+        return menu_item
+
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        print ("build_menu:", self.gui.div)
-        self.menu = self.gui.div(
+        #print ("build_menu:", self.gui.div)
+        self.menu = Menu.MENU[self.originator] = self.gui.div(
             self.gui.doc, s_position='absolute', s_top='50%', s_left='50%',
-            s_display=display, s_border='1px solid #d0d0d0')
+            s_display=display, s_border='1px solid #d0d0d0', o_Id=self.item)
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [Menu(self.gui, self.menu, self.gui.img(self.menu, **kwargs)) for kwargs in menu]
+        [self.build_item(item) for item in menu]
         return self.menu
 
-    def action(self, event):
-        #menu = Menu.MENU[event.target.id]
-        self.parent.style.display = 'none'
-        self.item.style.display = 'block'
-        self.item.style.left = self.parent.menuX
-        self.item.style.top = self.parent.menuY
+    def click(self, event):
+        event.stopPropagation()
+        event.preventDefault()
+        self.menu.style.display = 'none'
+        #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
+        obj = event.target.id in Menu.MENU and Menu.MENU[event.target.id] or self
+        self.gui.activate(self.command or self.item, event, obj)
 
-    def context(self, ev):
+    def contextmenu(self, ev):
         if True:  # ev.button == 2:
             ev.stopPropagation()
             ev.preventDefault()
-            #print('self menu:', self.menu)
+            print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
             self.menu.style.display = 'block'
-            self.menu.style.left = self.menuX = ev.clientX
-            self.menu.style.top = self.menuY = ev.clientY
+            self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
+            self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
             return False
 
 
 class GuiDraw(object):
     """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
     """
-    def build_menu(self, menu=MENU_DEFAULT, display="none"):
-        _menu = self.div(
-            self.doc, s_position='absolute', s_top='50%', s_left='50%',
-            s_display=display, s_border='1px solid #d0d0d0')
-        #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [self.img(_menu, **kwargs).bind(
-            "click", getattr(self, kwargs['o_click'])) for kwargs in menu]
-        return _menu
-
     def _locate(self, place, element, kwargs=[]):
         #print(kwargs)
         if 's_backgroundSize' in kwargs:
@@ -188,14 +190,10 @@ class Gui(GuiDraw):
         self.main = self.doc["base"]
         self.book = self.doc["book"]
         self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
-        #self.menu = self.build_menu(display='none')
-        #self.s_menu = self.build_menu([E_MENU(item, ck="act_scene") for item in EICA])
-        #self.p_menu = self.build_menu([E_MENU(item, ck="act_prop") for item in EICAP])
-        #self.doc.oncontextmenu = self._menu
-        self.menu = Menu(self, menu=MENU_DEFAULT)
-        #self.s_menu = Menu(
-        #    self, self.menu.menu, menu=[E_MENU(item, ck="act_scene") for item in EICA] )
-        self.doc.oncontextmenu = self.menu.context
+        self.rmenu = Menu(self, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
+        self.doc.oncontextmenu = self.rmenu.contextmenu
+        self.pmenu = Menu(self, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
+        self.smenu = Menu(self, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
         self.rubber_start = self.build_rubberband()
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
@@ -226,25 +224,25 @@ class Gui(GuiDraw):
         oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
         return "o%d_" % oid + targ_id
 
-    def act_scene(self, ev):
-        self.s_menu.style.display = 'none'
-        #self.img(
-        #    self.book, o_src=SCENE % ev.target.id, o_width=1100, s_top=0,
-        #    s_left=0, o_Id=self.make_id(ev.target.id), s_position='absolute')
+    def activate(self, command, ev, menu):
+        getattr(self, command)(ev, menu)
+
+    def menu(self, ev, menu):
+        menu.style.display = 'block'
+        menu.style.left = self.menuX
+        menu.style.top = self.menuY
+
+    def ad_cenario(self, ev, menu):
         oid = self.make_id(ev.target.id)
         kwargs = dict(
             s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
             s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
             s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
         )
-        #scene = self.div(
-        #    self.book, o_Class="bookpage", o_Id=oid, **kwargs)
-        #scene.style.backgroundSize = "100% 100%"
         self.control.activate(
             self.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid, **kwargs)
 
-    def act_prop(self, ev):
-        self.p_menu.style.display = 'none'
+    def ad_objeto(self, ev, menu):
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
         self.img(self.book, o_src=SCENE % ev.target.id, o_Id=self.make_id(tid),
                  s_position='absolute', s_float='left', s_top=self.menuY-offy,
@@ -397,14 +395,3 @@ class Gui(GuiDraw):
             marginLeft='-150px', marginTop='-100px', padding='10px', s_display='none',
             s_width='2px', s_height='2px', s_border='1px solid #d0d0d0')
         return start
-
-    def _menu(self, ev):
-        if True:  # ev.button == 2:
-            ev.stopPropagation()
-            ev.preventDefault()
-            #print('self menu:', self.menu)
-            self.menu.style.display = 'block'
-            self.menu.style.left = self.menuX = ev.clientX
-            self.menu.style.top = self.menuY = ev.clientY
-            return False
-
