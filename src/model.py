@@ -41,7 +41,7 @@ class Thing:
         """Activate a given command."""
         try:
             kwargs['o_place'] = o_place
-            #print ("activate:", o_part, o_Id, o_place, kwargs)
+            print ("activate:", o_emp, o_cmd, o_part, o_Id, o_place, kwargs)
             thing_class = Thing.CONTROL[o_cmd]
             return thing_class(o_emp, fab=self, o_part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
@@ -73,7 +73,7 @@ class Thing:
 
     def up(self, o_Id):
         """Set member as current. """
-        self.current = Thing.ALL_THINGS(o_Id)
+        self.current = Thing.ALL_THINGS[o_Id]
         return self.current
 
     def list(self, employ=None, **kwargs):
@@ -194,7 +194,7 @@ class Command(Thing):
     def __init__(self, employ, fab=THETHING, o_part=None, o_Id=None, **kwargs):
         Command.SCRIPT.append(self)
         #print ("Command init:", fab, o_part, o_Id, kwargs)
-        self.execute(employ, fab=fab, part=o_part, **kwargs)
+        self.execute(employ, fab=fab, part=o_part, o_Id=o_Id, **kwargs)
 
     def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
@@ -209,7 +209,7 @@ class DoAdd(Command):
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Add an element and deploy a given part."""
         element = fab.employ(part, o_Id, **kwargs)
-        #print ("DoAdd create:", fab, part, o_Id, element, kwargs)
+        print ("DoAdd create:", fab, part, o_Id, element, kwargs)
         element.deploy(employ)
 
 
@@ -217,6 +217,7 @@ class DoUp(Command):
     """Set element as current."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Deploy the current element to the front."""
+        print('DoUp:', o_Id, employ)
         element = fab.up(o_Id)
         element.deploy(employ)
 
@@ -233,6 +234,6 @@ def init():
     THETHING = Thing(o_Id='book')
     Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
                                 Grid=Grid, Dragger=Dragger))
-    Thing.CONTROL.update(dict(DoAdd=DoAdd, DoList=DoList))
+    Thing.CONTROL.update(dict(DoAdd=DoAdd, DoList=DoList, DoUp=DoUp))
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING

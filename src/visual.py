@@ -108,37 +108,41 @@ class Menu(object):
     MENU = {}
 
     def __init__(self, gui, originator, menu=None,
-                 command='gomenu', prefix=MENUPX, event="click"):
+                 command='menu_', prefix=MENUPX, event="click"):
         self.gui, self.item, self.prefix = gui, originator, prefix
         self.command, self.prefix = command, prefix
         self.originator = originator
         self.book = self.gui.doc["book"]
+        self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         menu and self.build_menu(menu)
 
-    def build_item(self, item):
-        #print('build_item', self.prefix, item)
-        pr = self.prefix % item
-        kwargs = dict(o_Id=item, o_src=pr, s_padding='2px', o_title=item)
-        menu_item = self.gui.img(self.menu, **kwargs)
-        menu_item.bind("click", self.click)
+    def build_item(self, item, source, menu):
+        print('build_item', self.prefix, item, menu, menu.menu)
+        #pr = self.prefix % item
+        kwargs = dict(o_Id=item, o_src=source, s_padding='2px', o_title=item)
+        menu_item = self.gui.img(menu.menu, **kwargs)
+        menu_item.bind("click", menu.click)
         return menu_item
 
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
         #print ("build_menu:", self.gui.div)
-        self.menu = Menu.MENU[self.originator] = self.gui.div(
+        Menu.MENU[self.originator] = self
+        self.menu = self.gui.div(
             self.gui.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0', o_Id=self.item)
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
-        [self.build_item(item) for item in menu]
+        [self.build_item(item, self.prefix % item, self) for item in menu]
         return self.menu
 
     def click(self, event):
         event.stopPropagation()
         event.preventDefault()
         self.menu.style.display = 'none'
-        #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
+        item = event.target.id in Menu.MENU and event.target.id or self.item
+        print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
         obj = event.target.id in Menu.MENU and Menu.MENU[event.target.id] or self
-        self.activate(self.command or self.item, event, obj)
+        #self.activate(self.command or self.item, event, obj)
+        self.activate(self.command + item, event, obj)
 
     def contextmenu(self, ev):
         if True:  # ev.button == 2:
@@ -152,26 +156,41 @@ class Menu(object):
 
     def make_id(self, targ_id):
         oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
-        return "o%d_" % oid + targ_id
+        return ("o%d_" % oid) + targ_id
 
     def activate(self, command, ev, menu):
-        print('activate', command, getattr(self, command))
+        print('activate', command, ev.target.id, getattr(self, command))
         getattr(self, command)(ev, menu)
 
-    def gomenu(self, ev, menu):
+    def menu_ad(self, ev, menu):
+        menu = menu.menu
         menu.style.display = 'block'
         menu.style.left = self.gui.menuX
         menu.style.top = self.gui.menuY
 
-    def latemenu(self, ev, menu):
-        menu.style.display = 'block'
-        menu.style.left = self.gui.menuX
-        menu.style.top = self.gui.menuY
+    def menu_navegar(self, ev, menu):
+        def thumb(o_item, o_Id, **kwargs):
+            print('thumb', self.prefix, kwargs)
+            #item = '/'.join(o_src[:-7].split('/')[:-2])
+            self.build_item(o_Id, MENUITEM % o_item, menu)
+
+        #if menu in Menu.MENU:
+        #    self.book.removeChild(menu)
+        pane = menu.menu
+        while (pane.hasChildNodes()):
+            pane.removeChild(pane.lastChild)
+        self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
+        pane.style.display = 'block'
+        pane.style.left = self.gui.menuX
+        pane.style.top = self.gui.menuY
 
     def navegar(self, ev, menu):
-        oid = ev.target.id
+        def up(o_Id, **kwargs):
+            print('up', self.prefix, o_Id)
+            #item = '/'.join(o_src[:-7].split('/')[:-2])
+            self.gui._locate(self.book, self.gui.doc[o_Id])
         kwargs = dict(
-            o_emp=self.gui.div, o_cmd="DoUp", o_part="Locus", o_Id=oid
+            o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id
         )
         self.gui.control.activate(**kwargs)
 
@@ -181,7 +200,8 @@ class Menu(object):
             o_emp=self.gui.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid,
             s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
             s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
-            s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
+            s_backgroundSize="100% 100%", s_left=0, s_position='absolute',
+            o_item=ev.target.id
         )
         self.gui.control.activate(**kwargs)
         self.gui.save(kwargs)
