@@ -86,10 +86,18 @@ class Builder:
     def build_deploy(self, descriptor):
         [self.model.employ(**description) for description in descriptor]
 
+    def build_menus(self):
+        self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
+        self.gui.doc.oncontextmenu = self.rmenu.contextmenu
+        self.pmenu = Menu(self.gui, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
+        self.smenu = Menu(self.gui, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
+        self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
+
     def build_all(self, gui):
         self.gui = gui
         self.gui.control = self.model
         self.build_deploy(DEFAULT)
+        self.build_menus()
         print(self.model.items)
         self.model.deploy(self.gui.employ)
 
@@ -100,10 +108,11 @@ class Menu(object):
     MENU = {}
 
     def __init__(self, gui, originator, menu=None,
-                 command='menu', prefix=MENUPX, event="click"):
+                 command='gomenu', prefix=MENUPX, event="click"):
         self.gui, self.item, self.prefix = gui, originator, prefix
         self.command, self.prefix = command, prefix
         self.originator = originator
+        self.book = self.gui.doc["book"]
         menu and self.build_menu(menu)
 
     def build_item(self, item):
@@ -129,7 +138,7 @@ class Menu(object):
         self.menu.style.display = 'none'
         #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
         obj = event.target.id in Menu.MENU and Menu.MENU[event.target.id] or self
-        self.gui.activate(self.command or self.item, event, obj)
+        self.activate(self.command or self.item, event, obj)
 
     def contextmenu(self, ev):
         if True:  # ev.button == 2:
@@ -140,6 +149,50 @@ class Menu(object):
             self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
             self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
             return False
+
+    def make_id(self, targ_id):
+        oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
+        return "o%d_" % oid + targ_id
+
+    def activate(self, command, ev, menu):
+        print('activate', command, getattr(self, command))
+        getattr(self, command)(ev, menu)
+
+    def gomenu(self, ev, menu):
+        menu.style.display = 'block'
+        menu.style.left = self.gui.menuX
+        menu.style.top = self.gui.menuY
+
+    def latemenu(self, ev, menu):
+        menu.style.display = 'block'
+        menu.style.left = self.gui.menuX
+        menu.style.top = self.gui.menuY
+
+    def navegar(self, ev, menu):
+        oid = ev.target.id
+        kwargs = dict(
+            o_emp=self.gui.div, o_cmd="DoUp", o_part="Locus", o_Id=oid
+        )
+        self.gui.control.activate(**kwargs)
+
+    def ad_cenario(self, ev, menu):
+        oid = self.make_id(ev.target.id)
+        kwargs = dict(
+            o_emp=self.gui.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid,
+            s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
+            s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
+            s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
+        )
+        self.gui.control.activate(**kwargs)
+        self.gui.save(kwargs)
+
+    def ad_objeto(self, ev, menu):
+        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
+        oid = self.make_id(ev.target.id)
+        self.gui.img(
+            self.book, o_src=SCENE % ev.target.id, o_Id=oid,
+            s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
+            s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
 
 
 class GuiDraw(object):
@@ -196,11 +249,6 @@ class Gui(GuiDraw):
         self.lst = self.div(self.book, s_position='absolute', s_left=220,
                             s_top=510, s_width=300, s_display='none')
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
-        self.rmenu = Menu(self, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
-        self.doc.oncontextmenu = self.rmenu.contextmenu
-        self.pmenu = Menu(self, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
-        self.smenu = Menu(self, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
-        self.nmenu = Menu(self, 'navegar', menu=EICA, prefix=MENUITEM, command='')
         self.rubber_start = self.build_rubberband()
         self.img(
             self.book, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
@@ -275,42 +323,6 @@ class Gui(GuiDraw):
         except Exception:
             print('place rejected:', o_place)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
-
-    def make_id(self, targ_id):
-        oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
-        return "o%d_" % oid + targ_id
-
-    def activate(self, command, ev, menu):
-        getattr(self, command)(ev, menu)
-
-    def menu(self, ev, menu):
-        menu.style.display = 'block'
-        menu.style.left = self.menuX
-        menu.style.top = self.menuY
-
-    def navegar(self, ev, menu):
-        oid = ev.target.id
-        kwargs = dict(
-            o_emp=self.div, o_cmd="DoUp", o_part="Locus", o_Id=oid,
-        )
-        self.control.activate(**kwargs)
-
-    def ad_cenario(self, ev, menu):
-        oid = self.make_id(ev.target.id)
-        kwargs = dict(
-            o_emp=self.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid,
-            s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
-            s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
-            s_backgroundSize="100% 100%", s_left=0, s_position='absolute'
-        )
-        self.control.activate(**kwargs)
-        self.save(kwargs)
-
-    def ad_objeto(self, ev, menu):
-        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
-        self.img(self.book, o_src=SCENE % ev.target.id, o_Id=self.make_id(tid),
-                 s_position='absolute', s_float='left', s_top=self.menuY-offy,
-                 s_left=self.menuX-offx, o_title=tid).onclick = self.sel_prop
 
     def sel_prop(self, ev):
         prop = self.doc[ev.target.id]

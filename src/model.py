@@ -188,13 +188,13 @@ class Dragger(Holder):
 
 
 class Command(Thing):
-    """A commom element any kind of action."""
+    """A commom element to any kind of action."""
     SCRIPT = []
 
     def __init__(self, employ, fab=THETHING, o_part=None, o_Id=None, **kwargs):
         Command.SCRIPT.append(self)
         #print ("Command init:", fab, o_part, o_Id, kwargs)
-        self.create(employ, fab=fab, part=o_part, **kwargs)
+        self.execute(employ, fab=fab, part=o_part, **kwargs)
 
     def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
@@ -206,8 +206,8 @@ class DoAdd(Command):
     def __init__(self, employ, fab=THETHING, o_part=None, o_Id=None, **kwargs):
         Command.__init__(self, employ, fab=fab, o_part=o_part, o_Id=o_Id, **kwargs)
 
-    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
-        """Fabricate and return a given part."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Add an element and deploy a given part."""
         element = fab.employ(part, o_Id, **kwargs)
         #print ("DoAdd create:", fab, part, o_Id, element, kwargs)
         element.deploy(employ)
@@ -215,15 +215,15 @@ class DoAdd(Command):
 
 class DoUp(Command):
     """Set element as current."""
-    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
-        """Fabricate and return a given part."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Deploy the current element to the front."""
         element = fab.up(o_Id)
         element.deploy(employ)
 
 
 class DoList(Command):
     """List elements from another element."""
-    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Ask fabric to list all."""
         fab.list(employ)
 
