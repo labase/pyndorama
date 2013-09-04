@@ -52,7 +52,8 @@ class Thing:
         #print ("employ:", o_part, o_Id, kwargs)
         try:
             thing_class = Thing.INVENTORY[o_part]
-            return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
+            self.current = thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
+            return self.current
         except Exception:
             print ("error creating %s id = %s" % (o_part, o_Id))
 
@@ -69,6 +70,17 @@ class Thing:
         """Deploy this thing at a certain site. """
         for item in self.items:
             item.deploy(employ=employ, **kwargs)
+
+    def up(self, o_Id):
+        """Set member as current. """
+        self.current = Thing.ALL_THINGS(o_Id)
+        return self.current
+
+    def list(self, employ=None, **kwargs):
+        """List member. """
+        [employ(**{argument: getattr(item, argument)
+                   for argument in dir(item) if argument[:2] in "o_ s_"})
+         for item in self.items]
 
     def visit(self, visiting):
         """Visit across the structure. """
@@ -201,11 +213,19 @@ class DoAdd(Command):
         element.deploy(employ)
 
 
+class DoUp(Command):
+    """Set element as current."""
+    def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Fabricate and return a given part."""
+        element = fab.up(o_Id)
+        element.deploy(employ)
+
+
 class DoList(Command):
     """List elements from another element."""
     def create(self, employ, fab=None, part=None, o_Id=None, **kwargs):
-        """Fabricate and return a given part."""
-        fab.deploy(employ)
+        """Ask fabric to list all."""
+        fab.list(employ)
 
 
 def init():

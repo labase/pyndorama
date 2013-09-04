@@ -33,7 +33,7 @@ E_MENU = lambda item, ck="act_rubber": dict(
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 #NO_MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
 #                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
-MENU_DEFAULT = ['ad_objeto', 'ad_cenario']
+MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'navegar']
 DEFAULT = [
 ]
 NODEFAULT = [
@@ -200,6 +200,7 @@ class Gui(GuiDraw):
         self.doc.oncontextmenu = self.rmenu.contextmenu
         self.pmenu = Menu(self, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
         self.smenu = Menu(self, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
+        self.nmenu = Menu(self, 'navegar', menu=EICA, prefix=MENUITEM, command='')
         self.rubber_start = self.build_rubberband()
         self.img(
             self.book, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
@@ -286,6 +287,13 @@ class Gui(GuiDraw):
         menu.style.display = 'block'
         menu.style.left = self.menuX
         menu.style.top = self.menuY
+
+    def navegar(self, ev, menu):
+        oid = ev.target.id
+        kwargs = dict(
+            o_emp=self.div, o_cmd="DoUp", o_part="Locus", o_Id=oid,
+        )
+        self.control.activate(**kwargs)
 
     def ad_cenario(self, ev, menu):
         oid = self.make_id(ev.target.id)
