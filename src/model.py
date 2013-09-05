@@ -60,6 +60,11 @@ class Thing:
         """Append an entry to this resgistry. """
         Thing.ALL_THINGS[oid] = entry
 
+    def remove(self, item):
+        """Remove this thing from this container. """
+        self.items.remove(item)
+        return self
+
     def append(self, item):
         """Append this thing to this container. """
         self.items.append(item)
@@ -69,6 +74,20 @@ class Thing:
         """Deploy this thing at a certain site. """
         for item in self.items:
             item.deploy(employ=employ, **kwargs)
+
+    def shape(self, o_Id, **kwargs):
+        """Set member as current. """
+        shaped = Thing.ALL_THINGS[o_Id]
+        shaped._add_properties(**kwargs)
+        return shaped
+
+    def delete(self, o_Id, employ):
+        """Set member as current. """
+        deleted = Thing.ALL_THINGS[o_Id]
+        deleted.deploy(employ)
+        oid = deleted.o_placeid if hasattr(deleted, "o_placeid ") else deleted.o_place.Id
+        Thing.ALL_THINGS[oid].remove(deleted)
+        return self.current
 
     def up(self, o_Id):
         """Set member as current. """
@@ -101,10 +120,12 @@ class Holder(Thing):
     """A placeholder for gui positioning scaffolding."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
-        if 'o_place' not in kwargs or not kwargs['o_place'] :
+        if 'o_place' not in kwargs or not kwargs['o_place']:
             kwargs['o_placeid'] = THETHING.current.o_Id
             THETHING.current.append(self)
         self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
+        (fab or self).register(o_Id, self)
+        #self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
         self._add_properties(**kwargs)
 
     def append(self, item):
@@ -226,6 +247,23 @@ class DoUp(Command):
         element.deploy(employ)
 
 
+class DoShape(Command):
+    """Shape current element."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Delete current element."""
+        #print('DoUp:', o_Id, employ)
+        element = fab.shape(o_Id)
+        element.deploy(employ)
+
+
+class DoDel(Command):
+    """Delete current element."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Delete current element."""
+        #print('DoUp:', o_Id, employ)
+        fab.delete(o_Id, employ)
+
+
 class DoList(Command):
     """List elements from another element."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
@@ -236,8 +274,10 @@ class DoList(Command):
 def init():
     global THETHING
     THETHING = Thing(o_Id='book')
-    Thing.INVENTORY.update(dict(Locus=Locus, Holder=Holder, TheThing=THETHING,
-                                Grid=Grid, Dragger=Dragger))
-    Thing.CONTROL.update(dict(DoAdd=DoAdd, DoList=DoList, DoUp=DoUp))
+    Thing.INVENTORY.update(
+        Locus=Locus, Holder=Holder, TheThing=THETHING,
+        Grid=Grid, Dragger=Dragger)
+    Thing.CONTROL.update(
+        DoAdd=DoAdd, DoList=DoList, DoUp=DoUp, DoDel=DoDel, DoShape=DoShape)
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING

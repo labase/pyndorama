@@ -74,12 +74,13 @@ background: #666;
 	top: 0px;
 	right: 0px; /* Opera5.02 will show a
 	space at right when there is no scroll bar */
-	padding: 10px 2% 10px 2%;
-	margin: 0px;
+	padding: 30px 40px 50px 2%;
+	margin: 30px;
 	border: 0px;
-	width: 50%;
+	width: 40%;
 	background-color: transparent;
 	float:right;
-	text-align: right
+	text-align: right;
+	font-size: large;
 	/* background: #666; */
 	}

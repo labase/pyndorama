@@ -33,7 +33,8 @@ E_MENU = lambda item, ck="act_rubber": dict(
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 #NO_MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
 #                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
-MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'navegar']
+MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
+MENU_PROP = ['apagar', 'balao', 'configurar', 'pular']
 DEFAULT = [
 ]
 NODEFAULT = [
@@ -92,6 +93,7 @@ class Builder:
         self.pmenu = Menu(self.gui, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
         self.smenu = Menu(self.gui, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
+        self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
 
     def build_all(self, gui):
         self.gui = gui
@@ -108,13 +110,14 @@ class Menu(object):
     MENU = {}
 
     def __init__(self, gui, originator, menu=None,
-                 command='menu_', prefix=MENUPX, event="click"):
+                 command='menu_', prefix=MENUPX, event="click", activate=False):
         self.gui, self.item, self.prefix = gui, originator, prefix
-        self.command, self.prefix = command, prefix
+        self.command, self.prefix, self.activated = command, prefix, activate
         self.originator = originator
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         menu and self.build_menu(menu)
+        #activate and self.activate_item(menu)
 
     def build_item(self, item, source, menu):
         #print('build_item', self.prefix, item, menu, menu.menu)
@@ -122,7 +125,13 @@ class Menu(object):
         kwargs = dict(o_Id="m_"+item, o_src=source, s_padding='2px', o_title=item)
         menu_item = self.gui.img(menu.menu, **kwargs)
         menu_item.bind("click", menu.click)
+        if self.activated and (menu_item not in Menu.MENU):
+            Menu.MENU[item] = Menu(self.gui, menu_item, command='submenu_')
         return menu_item
+
+    #def activate_item(self, item, source, menu):
+        #print('build_item', self.prefix, item, menu, menu.menu)
+        #pr = self.prefix % item
 
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
         #print ("build_menu:", self.gui.div)
@@ -140,7 +149,7 @@ class Menu(object):
         self.menu.style.display = 'none'
         menu_id = event.target.id[2:]
         item = menu_id in Menu.MENU and menu_id or self.item
-        #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
+        print('click:', menu_id, self.menu.Id, self.prefix, self.originator, self.item)
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
@@ -168,6 +177,30 @@ class Menu(object):
         menu.style.display = 'block'
         menu.style.left = self.gui.menuX
         menu.style.top = self.gui.menuY
+
+    def menu_ob_ctx(self, ev, menu):
+        menu = menu.menu
+        menu.style.display = 'none'
+        menu.style.left = self.gui.menuX
+        menu.style.top = self.gui.menuY
+
+    def object_context(self, ev):
+        ev.stopPropagation()
+        ev.preventDefault()
+        self.gui.obj_id = ev.target.id
+        menu = Menu.MENU['ob_ctx'].menu
+        menu.style.display = 'block'
+        menu.style.left = self.gui.menuX
+        menu.style.top = self.gui.menuY
+
+    def menu_apagar(self, ev, menu):
+        def delete(o_item, o_Id, **kwargs):
+            #print('thumb', self.prefix, kwargs)
+            self.gui.doc[o_Id].style.display = 'none'
+            kwargs.update(o_cmd='DoDel', o_Id=o_Id)
+            self.gui.save(kwargs)
+        self.gui.control.activate(
+            o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
 
     def menu_navegar(self, ev, menu):
         def thumb(o_item, o_Id, **kwargs):
@@ -209,6 +242,29 @@ class Menu(object):
         self.gui.save(kwargs)
 
     def ad_objeto(self, ev, menu):
+        def prop(o_place, **kwargs):
+            try:
+                kwargs.update(o_cmd="DoAdd")
+                self.gui.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
+                self.gui.save(kwargs)
+            except Exception:
+                print('ad_objeto place rejected:', o_place, kwargs)
+            #print('up', self.prefix, o_Id)
+            #item = '/'.join(o_src[:-7].split('/')[:-2])
+        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
+        oid = self.make_id(tid)
+        #self.gui.img(
+        #    self.book, o_src=SCENE % ev.target.id, o_Id=oid,
+        #    s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
+        #    s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
+        kwargs = dict(
+            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="img",
+            o_item=tid, o_src=SCENE % tid, o_Id=oid,
+            s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
+            s_left=self.gui.menuX-offx, o_title=tid)
+        self.gui.control.activate(**kwargs)
+
+    def wiki(self, ev, menu):
         def prop(o_place, **kwargs):
             try:
                 kwargs.update(o_cmd="DoAdd")
@@ -283,15 +339,16 @@ class Gui(GuiDraw):
         self.storage, self.json = gui.STORAGE, gui.JSON
         self.main = self.doc["base"]
         self.book = self.doc["book"]
-        self.lst = self.div(self.book, s_position='absolute', s_left=220,
-                            s_top=510, s_width=300, s_display='none')
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
         self.rubber_start = self.build_rubberband()
+        self.start_div = self.div(self.book)
+        self.lst = self.div(self.start_div, s_position='absolute', s_left=220,
+                            s_top=510, s_width=300, s_display='none')
         self.img(
-            self.book, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
+            self.start_div, MENUPX[:-4] % 'fundo.jpg', 1100, 800,
             s_position='absolute', s_left=0)
-        self.img(self.book, o_Id=LGM, s_left=120, **KWA).onclick = self.start
-        self.img(self.book, o_Id=NGM, s_left=530, **KWA).onclick = self.start
+        self.img(self.start_div, o_Id=LGM, s_left=120, **KWA).onclick = self.start
+        self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
                                  drag=self.build_drag, drop=self.build_drop)
 
@@ -307,7 +364,7 @@ class Gui(GuiDraw):
         [render(**kwargs) for kwargs in commands]
 
     def save(self, cmd):
-        if 'o_place' in cmd:
+        if 'o_place' in cmd and cmd['o_place']:
             cmd['o_place'] = cmd.pop('o_place').id
         elif 'o_placeid' in cmd:
             cmd['o_place'] = cmd.pop('o_placeid')
@@ -321,7 +378,7 @@ class Gui(GuiDraw):
         def nameit(ev):
             self.game = ev.target.id[5:]
             #print('nameit', self.game)
-            lst.style.display = 'none'
+            self.start_div.style.display = 'none'
             self.load()
         self.book <= lst
 
@@ -334,6 +391,7 @@ class Gui(GuiDraw):
             self.game = self.win.prompt(ask, default_name) or default_name
             self.storage[JEPPETO] = self.json.dumps(games + [self.game])
             self.storage['_JPT_'+self.game] = self.json.dumps([])
+            self.start_div.style.display = 'none'
         else:
             for game in games:
                 inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
