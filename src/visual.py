@@ -119,7 +119,7 @@ class Menu(object):
     def build_item(self, item, source, menu):
         #print('build_item', self.prefix, item, menu, menu.menu)
         #pr = self.prefix % item
-        kwargs = dict(o_Id=item, o_src=source, s_padding='2px', o_title=item)
+        kwargs = dict(o_Id="m_"+item, o_src=source, s_padding='2px', o_title=item)
         menu_item = self.gui.img(menu.menu, **kwargs)
         menu_item.bind("click", menu.click)
         return menu_item
@@ -138,9 +138,10 @@ class Menu(object):
         event.stopPropagation()
         event.preventDefault()
         self.menu.style.display = 'none'
-        item = event.target.id in Menu.MENU and event.target.id or self.item
+        menu_id = event.target.id[2:]
+        item = menu_id in Menu.MENU and menu_id or self.item
         #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
-        obj = event.target.id in Menu.MENU and Menu.MENU[event.target.id] or self
+        obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
 
@@ -190,18 +191,19 @@ class Menu(object):
             #item = '/'.join(o_src[:-7].split('/')[:-2])
             self.gui._locate(self.book, self.gui.doc[o_Id])
         kwargs = dict(
-            o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id
+            o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id[2:]
         )
         self.gui.control.activate(**kwargs)
 
     def ad_cenario(self, ev, menu):
-        oid = self.make_id(ev.target.id)
+        menu_id = ev.target.id[2:]
+        oid = self.make_id(menu_id)
         kwargs = dict(
             o_emp=self.gui.div, o_cmd="DoAdd", o_part="Locus", o_Id=oid,
-            s_background='url(%s) no-repeat' % (SCENE % ev.target.id),
+            s_background='url(%s) no-repeat' % (SCENE % menu_id),
             s_width=1100, s_height=800, s_top=0, o_gcomp="div", o_place=self.book,
             s_backgroundSize="100% 100%", s_left=0, s_position='absolute',
-            o_item=ev.target.id
+            o_item=menu_id
         )
         self.gui.control.activate(**kwargs)
         self.gui.save(kwargs)
@@ -216,15 +218,15 @@ class Menu(object):
                 print('ad_objeto place rejected:', o_place, kwargs)
             #print('up', self.prefix, o_Id)
             #item = '/'.join(o_src[:-7].split('/')[:-2])
-        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
-        oid = self.make_id(ev.target.id)
+        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
+        oid = self.make_id(tid)
         #self.gui.img(
         #    self.book, o_src=SCENE % ev.target.id, o_Id=oid,
         #    s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
         #    s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
         kwargs = dict(
             o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="img",
-            o_item=ev.target.id, o_src=SCENE % ev.target.id, o_Id=oid,
+            o_item=tid, o_src=SCENE % tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid)
         self.gui.control.activate(**kwargs)
@@ -295,6 +297,8 @@ class Gui(GuiDraw):
 
     def load(self, cmd=None):
         def render(o_gcomp, o_place, **kwargs):
+            targ_id = kwargs['o_Id'].split('_')[1]
+            Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
                 self.deliverables[o_gcomp], o_place=self.doc[o_place], **kwargs)
 
@@ -409,8 +413,9 @@ class Gui(GuiDraw):
             #w, h = abs(ev.x - cx), abs(y - cy)
             prop_box.style.left = -90000
             prop_size.style.left = -90000
+            props = prop.style
             print('dropsize', x, y, w, h)
-            prop.style.left, prop.style.top, prop.style.width, prop.style.height = x, y, 2*w, 2*h
+            props.left, props.top, props.width, props.height = x, y, 2*w, 2*h
             prop_box.unbind('dragstart', dragstart)
             prop_size.unbind('dragstart', sizestart)
 
@@ -419,13 +424,14 @@ class Gui(GuiDraw):
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
-        print (ev.target.id, x, y, w, h)
+        print (ev.target.id, x, y, w, h, prop.style.left, prop.style.top)
         #prop.unbind('click')
         prop_box.bind('dragstart', dragstart)
-        prop_box.style.left, prop_box.style.top, prop_box.style.width, prop_box.style.height = x, y, w, h
+        pboxs, psizes = prop_box.style, prop_size.style
+        pboxs.left, pboxs.top, pboxs.width, prop_box.style.height = x, y, w, h
         self.book <= prop_box
         prop_size.bind('dragstart', sizestart)
-        prop_size.style.left, prop_size.style.top, prop_size.style.width, prop_size.style.height = x-5, y-5, s, s
+        psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
         self.book <= prop_size
         self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
