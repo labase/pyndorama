@@ -41,19 +41,18 @@ class Thing:
         """Activate a given command."""
         try:
             kwargs['o_place'] = o_place
-            print ("activate:", o_emp, o_cmd, o_part, o_Id, o_place, kwargs)
+            #print ("activate:", o_emp, o_cmd, o_part, o_Id, o_place, kwargs)
             thing_class = Thing.CONTROL[o_cmd]
             return thing_class(o_emp, fab=self, o_part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
-            print ("error activating %s id = %s" % (o_part, o_Id))
+            print ("error activating %s id = %s, place %s" % (o_part, o_Id, o_place))
 
     def employ(self, o_part=None, o_Id=None, **kwargs):
         """Fabricate and locate a given part."""
         #print ("employ:", o_part, o_Id, kwargs)
         try:
             thing_class = Thing.INVENTORY[o_part]
-            self.current = thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
-            return self.current
+            return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
             print ("error creating %s id = %s" % (o_part, o_Id))
 
@@ -99,9 +98,12 @@ class Thing:
 
 
 class Holder(Thing):
-    """A paceholder for gui positioning scaffolding."""
+    """A placeholder for gui positioning scaffolding."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        if 'o_place' not in kwargs or not kwargs['o_place'] :
+            kwargs['o_placeid'] = THETHING.current.o_Id
+            THETHING.current.append(self)
         self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         self._add_properties(**kwargs)
 
@@ -111,7 +113,8 @@ class Holder(Thing):
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
-        #print(self.o_place, self.o_width)
+        print('Holder deploy', {argument: getattr(self, argument)
+                                for argument in dir(self) if argument[:2] in "o_ s_"})
         employ(**{argument: getattr(self, argument)
                   for argument in dir(self) if argument[:2] in "o_ s_"})
 
@@ -132,6 +135,7 @@ class Locus(Thing):
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
+        THETHING.current = self
         employ(**{argument: getattr(self, argument)
                   for argument in dir(self) if argument[:2] in "o_ s_"})
         for item in self.items:
@@ -217,7 +221,7 @@ class DoUp(Command):
     """Set element as current."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Deploy the current element to the front."""
-        print('DoUp:', o_Id, employ)
+        #print('DoUp:', o_Id, employ)
         element = fab.up(o_Id)
         element.deploy(employ)
 

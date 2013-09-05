@@ -117,7 +117,7 @@ class Menu(object):
         menu and self.build_menu(menu)
 
     def build_item(self, item, source, menu):
-        print('build_item', self.prefix, item, menu, menu.menu)
+        #print('build_item', self.prefix, item, menu, menu.menu)
         #pr = self.prefix % item
         kwargs = dict(o_Id=item, o_src=source, s_padding='2px', o_title=item)
         menu_item = self.gui.img(menu.menu, **kwargs)
@@ -139,7 +139,7 @@ class Menu(object):
         event.preventDefault()
         self.menu.style.display = 'none'
         item = event.target.id in Menu.MENU and event.target.id or self.item
-        print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
+        #print('click:', event.target.id, self.menu.Id, self.prefix, self.originator, self.item)
         obj = event.target.id in Menu.MENU and Menu.MENU[event.target.id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
@@ -148,7 +148,7 @@ class Menu(object):
         if True:  # ev.button == 2:
             ev.stopPropagation()
             ev.preventDefault()
-            print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
+            #print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
             self.menu.style.display = 'block'
             self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
             self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
@@ -159,7 +159,7 @@ class Menu(object):
         return ("o%d_" % oid) + targ_id
 
     def activate(self, command, ev, menu):
-        print('activate', command, ev.target.id, getattr(self, command))
+        #print('activate', command, ev.target.id, getattr(self, command))
         getattr(self, command)(ev, menu)
 
     def menu_ad(self, ev, menu):
@@ -170,7 +170,7 @@ class Menu(object):
 
     def menu_navegar(self, ev, menu):
         def thumb(o_item, o_Id, **kwargs):
-            print('thumb', self.prefix, kwargs)
+            #print('thumb', self.prefix, kwargs)
             #item = '/'.join(o_src[:-7].split('/')[:-2])
             self.build_item(o_Id, MENUITEM % o_item, menu)
 
@@ -186,7 +186,7 @@ class Menu(object):
 
     def navegar(self, ev, menu):
         def up(o_Id, **kwargs):
-            print('up', self.prefix, o_Id)
+            #print('up', self.prefix, o_Id)
             #item = '/'.join(o_src[:-7].split('/')[:-2])
             self.gui._locate(self.book, self.gui.doc[o_Id])
         kwargs = dict(
@@ -207,22 +207,37 @@ class Menu(object):
         self.gui.save(kwargs)
 
     def ad_objeto(self, ev, menu):
+        def prop(o_place, **kwargs):
+            try:
+                kwargs.update(o_cmd="DoAdd")
+                self.gui.img(**kwargs).onclick = self.gui.sel_prop
+                self.gui.save(kwargs)
+            except Exception:
+                print('ad_objeto place rejected:', o_place, kwargs)
+            #print('up', self.prefix, o_Id)
+            #item = '/'.join(o_src[:-7].split('/')[:-2])
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id
         oid = self.make_id(ev.target.id)
-        self.gui.img(
-            self.book, o_src=SCENE % ev.target.id, o_Id=oid,
+        #self.gui.img(
+        #    self.book, o_src=SCENE % ev.target.id, o_Id=oid,
+        #    s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
+        #    s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
+        kwargs = dict(
+            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="img",
+            o_item=ev.target.id, o_src=SCENE % ev.target.id, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
-            s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
+            s_left=self.gui.menuX-offx, o_title=tid)
+        self.gui.control.activate(**kwargs)
 
 
 class GuiDraw(object):
     """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
     """
-    def _locate(self, place, element, kwargs=[]):
-        #print(kwargs)
+    def _locate(self, place, element, o_placeid=None, **kwargs):
+        print('_locate', place, element, o_placeid, kwargs)
         if 's_backgroundSize' in kwargs:
             element.style.backgroundSize = kwargs['s_backgroundSize']
-        locus = place if place else self.main
+        locus = o_placeid and self.doc[o_placeid] or place
         locus <= element
         return element
 
@@ -233,7 +248,7 @@ class GuiDraw(object):
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
         return self._locate(o_place, self.html.DIV(
-            Id=o_Id, Class=o_Class, style=self._filter(kwargs)), kwargs)
+            Id=o_Id, Class=o_Class, style=self._filter(kwargs)), **kwargs)
 
     def iframe(
         self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
@@ -249,7 +264,7 @@ class GuiDraw(object):
         """Html image. """
         return self._locate(o_place, self.html.IMG(
             Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
-            title=o_title, src=o_src, style=self._filter(kwargs)))
+            title=o_title, src=o_src, style=self._filter(kwargs)), **kwargs)
 JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
 KWA = dict(s_position='absolute', s_opacity=0.1, s_top=180,
            o_src=MENUPX % 'drawing', o_width=400, o_height=400)
@@ -284,11 +299,15 @@ class Gui(GuiDraw):
                 self.deliverables[o_gcomp], o_place=self.doc[o_place], **kwargs)
 
         commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
-        #print('load:', self.control, commands)
+        print('load:', self.control, commands)
         [render(**kwargs) for kwargs in commands]
 
     def save(self, cmd):
-        cmd['o_place'] = cmd.pop('o_place').id
+        if 'o_place' in cmd:
+            cmd['o_place'] = cmd.pop('o_place').id
+        elif 'o_placeid' in cmd:
+            cmd['o_place'] = cmd.pop('o_placeid')
+
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
@@ -337,7 +356,7 @@ class Gui(GuiDraw):
 
     def employ(self, o_gcomp=None, o_place=None, **kwargs):
         place = self.doc
-        print ('employ', o_place, o_gcomp, kwargs)
+        #print ('employ', o_place, o_gcomp, kwargs)
         try:
             place = self.doc[o_place]
         except Exception:
