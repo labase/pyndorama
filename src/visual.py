@@ -93,6 +93,7 @@ class Builder:
         self.pmenu = Menu(self.gui, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
         self.smenu = Menu(self.gui, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
+        self.umenu = Menu(self.gui, 'pular', menu=EICA, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
 
     def build_all(self, gui):
@@ -117,7 +118,6 @@ class Menu(object):
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         menu and self.build_menu(menu)
-        #activate and self.activate_item(menu)
 
     def build_item(self, item, source, menu):
         #print('build_item', self.prefix, item, menu, menu.menu)
@@ -125,13 +125,10 @@ class Menu(object):
         kwargs = dict(o_Id="m_"+item, o_src=source, s_padding='2px', o_title=item)
         menu_item = self.gui.img(menu.menu, **kwargs)
         menu_item.bind("click", menu.click)
-        if self.activated and (menu_item not in Menu.MENU):
-            Menu.MENU[item] = Menu(self.gui, menu_item, command='submenu_')
+        if self.activated and (item not in Menu.MENU):
+            print('activated', item, menu_item)
+            Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
-
-    #def activate_item(self, item, source, menu):
-        #print('build_item', self.prefix, item, menu, menu.menu)
-        #pr = self.prefix % item
 
     def build_menu(self, menu=MENU_DEFAULT, display="none"):
         #print ("build_menu:", self.gui.div)
@@ -193,6 +190,12 @@ class Menu(object):
         menu.style.left = self.gui.menuX
         menu.style.top = self.gui.menuY
 
+    def menu_balao(self, ev, menu):
+        pass
+
+    def menu_configurar(self, ev, menu):
+        pass
+
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
@@ -201,6 +204,18 @@ class Menu(object):
             self.gui.save(kwargs)
         self.gui.control.activate(
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
+
+    def menu_pular(self, ev, menu):
+        def thumb(o_item, o_Id, **kwargs):
+            #print('thumb', self.prefix, kwargs)
+            self.build_item(o_Id, MENUITEM % o_item, menu)
+        pane = menu.menu
+        while (pane.hasChildNodes()):
+            pane.removeChild(pane.lastChild)
+        self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
+        pane.style.display = 'block'
+        pane.style.left = self.gui.menuX
+        pane.style.top = self.gui.menuY
 
     def menu_navegar(self, ev, menu):
         def thumb(o_item, o_Id, **kwargs):
@@ -292,7 +307,7 @@ class GuiDraw(object):
     """Factory returning HTML, SVG elements and placeholder groups. :ref:`gui`
     """
     def _locate(self, place, element, o_placeid=None, **kwargs):
-        print('_locate', place, element, o_placeid, kwargs)
+        #print('_locate', place, element, o_placeid, kwargs)
         if 's_backgroundSize' in kwargs:
             element.style.backgroundSize = kwargs['s_backgroundSize']
         locus = o_placeid and self.doc[o_placeid] or place
@@ -379,6 +394,8 @@ class Gui(GuiDraw):
             self.game = ev.target.id[5:]
             #print('nameit', self.game)
             self.start_div.style.display = 'none'
+            self.doc["illumini"].style.display = "none"
+            self.doc["text"].style.display = "none"
             self.load()
         self.book <= lst
 
@@ -392,6 +409,8 @@ class Gui(GuiDraw):
             self.storage[JEPPETO] = self.json.dumps(games + [self.game])
             self.storage['_JPT_'+self.game] = self.json.dumps([])
             self.start_div.style.display = 'none'
+            self.doc["illumini"].style.display = "none"
+            self.doc["text"].style.display = "none"
         else:
             for game in games:
                 inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
