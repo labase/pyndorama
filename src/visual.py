@@ -37,25 +37,6 @@ MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
 MENU_PROP = ['apagar', 'balao', 'configurar', 'pular']
 DEFAULT = [
 ]
-NODEFAULT = [
-    dict(o_part='Locus', o_Id='13081200990010', o_gcomp='iframe', o_place='text',
-         o_width=450, o_height=600,
-         o_Class="frame", o_frameBorder=0, o_src="view/battle.html"),
-    dict(o_part='Locus', o_Id='13081200990020', o_gcomp='img', o_place='illumini',
-         o_width=500, o_src=IMG),
-    dict(o_part='Locus', o_Id='13081200990030', o_gcomp='div', o_place='subtext',
-         o_Class="fleet"),
-    dict(o_part='Grid', o_Id='13081200990040', go_width=30, o_place='13081200990030',
-         gs_backgroundColor='white', s_width=140,
-         o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    dict(o_part='Grid', o_Id='13081200990050', go_width=30, o_place='13081200990030',
-         gs_backgroundColor='navajowhite', s_width=120,
-         o_grid=["0000", {"0": dict(o_part='Holder', o_gcomp="img", o_src=SHIP)}]),
-    #dict(o_part='Dragger', o_Id='13161200990060', o_gcomp="drag", o_place='13081200990040',
-    #     o_drop='13081200990020'),
-    #dict(o_part='Inventary', o_Id=13082300990010, o_gcomp={'0': 'img'}, o_width=30,
-    #     o_place='13081200990030',  o_src={'0': SHIP}, o_mapper='0000')
-]
 
 
 class Builder:
@@ -200,7 +181,7 @@ class Menu(object):
         def delete(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
             self.gui.doc[o_Id].style.display = 'none'
-            kwargs.update(o_cmd='DoDel', o_Id=o_Id)
+            kwargs.update(o_cmd='DoDel', o_Id=o_Id, o_gcomp='delete')
             self.gui.save(kwargs)
         self.gui.control.activate(
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
@@ -268,10 +249,6 @@ class Menu(object):
             #item = '/'.join(o_src[:-7].split('/')[:-2])
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
         oid = self.make_id(tid)
-        #self.gui.img(
-        #    self.book, o_src=SCENE % ev.target.id, o_Id=oid,
-        #    s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
-        #    s_left=self.gui.menuX-offx, o_title=tid).onclick = self.gui.sel_prop
         kwargs = dict(
             o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="img",
             o_item=tid, o_src=SCENE % tid, o_Id=oid,
@@ -323,6 +300,10 @@ class GuiDraw(object):
         return self._locate(o_place, self.html.DIV(
             Id=o_Id, Class=o_Class, style=self._filter(kwargs)), **kwargs)
 
+    def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
+        #print(kwargs, self._filter(kwargs))
+        o_place.removeChild(self.doc[o_Id])
+
     def iframe(
         self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
             o_frameBorder=0, o_src="", **kwarg):
@@ -364,26 +345,27 @@ class Gui(GuiDraw):
             s_position='absolute', s_left=0)
         self.img(self.start_div, o_Id=LGM, s_left=120, **KWA).onclick = self.start
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
-        self.deliverables = dict(div=self.div, iframe=self.iframe, img=self.img,
-                                 drag=self.build_drag, drop=self.build_drop)
+        self.deliverables = dict(
+            div=self.div, iframe=self.iframe, img=self.img, delete=self.delete,
+            drag=self.build_drag, drop=self.build_drop)
 
     def load(self, cmd=None):
-        def render(o_gcomp, o_place, **kwargs):
+        def render(o_gcomp, o_placeid, **kwargs):
             targ_id = kwargs['o_Id'].split('_')[1]
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
-                self.deliverables[o_gcomp], o_place=self.doc[o_place], **kwargs)
+                self.deliverables[o_gcomp], o_place=self.doc[o_placeid], **kwargs)
 
         commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
-        print('load:', self.control, commands)
+        print('load:', self.control, self.storage['_JPT_' + (cmd or self.game)])
         [render(**kwargs) for kwargs in commands]
 
     def save(self, cmd):
         if 'o_place' in cmd and cmd['o_place']:
-            cmd['o_place'] = cmd.pop('o_place').id
-        elif 'o_placeid' in cmd:
-            cmd['o_place'] = cmd.pop('o_placeid')
-
+            cmd['o_placeid'] = cmd.pop('o_place').id
+        elif 'o_place' in cmd:
+            cmd.pop('o_place')
+        print('save,', cmd)
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
@@ -435,13 +417,13 @@ class Gui(GuiDraw):
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send()
 
-    def employ(self, o_gcomp=None, o_place=None, **kwargs):
+    def employ(self, o_gcomp=None, o_placeid=None, **kwargs):
         place = self.doc
         #print ('employ', o_place, o_gcomp, kwargs)
         try:
-            place = self.doc[o_place]
+            place = self.doc[o_placeid]
         except Exception:
-            print('place rejected:', o_place)
+            print('place rejected:', o_placeid)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
     def sel_prop(self, ev):

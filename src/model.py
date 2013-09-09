@@ -85,7 +85,7 @@ class Thing:
         """Set member as current. """
         deleted = Thing.ALL_THINGS[o_Id]
         deleted.deploy(employ)
-        oid = deleted.o_placeid if hasattr(deleted, "o_placeid ") else deleted.o_place.Id
+        oid = deleted.o_placeid if hasattr(deleted, "o_placeid") else deleted.o_place.Id
         Thing.ALL_THINGS[oid].remove(deleted)
         return self.current
 
@@ -122,7 +122,7 @@ class Holder(Thing):
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
         if 'o_place' not in kwargs or not kwargs['o_place']:
             kwargs['o_placeid'] = THETHING.current.o_Id
-            THETHING.current.append(self)
+        THETHING.current.append(self)
         self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         (fab or self).register(o_Id, self)
         #self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
@@ -134,8 +134,8 @@ class Holder(Thing):
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
-        print('Holder deploy', {argument: getattr(self, argument)
-                                for argument in dir(self) if argument[:2] in "o_ s_"})
+        #print('Holder deploy', {argument: getattr(self, argument)
+        #                        for argument in dir(self) if argument[:2] in "o_ s_"})
         employ(**{argument: getattr(self, argument)
                   for argument in dir(self) if argument[:2] in "o_ s_"})
 
@@ -234,7 +234,7 @@ class DoAdd(Command):
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Add an element and deploy a given part."""
         element = fab.employ(part, o_Id, **kwargs)
-        print ("DoAdd create:", fab, part, o_Id, element, kwargs)
+        #print ("DoAdd execute:", fab, part, o_Id, element, kwargs)
         element.deploy(employ)
 
 
@@ -260,7 +260,7 @@ class DoDel(Command):
     """Delete current element."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Delete current element."""
-        #print('DoUp:', o_Id, employ)
+        #print ("DoDel execute:", fab, part, o_Id, kwargs)
         fab.delete(o_Id, employ)
 
 
