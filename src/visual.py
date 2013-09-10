@@ -107,7 +107,7 @@ class Menu(object):
         menu_item = self.gui.img(menu.menu, **kwargs)
         menu_item.bind("click", menu.click)
         if self.activated and (item not in Menu.MENU):
-            print('activated', item, menu_item)
+            #print('activated', item, menu_item)
             Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
 
@@ -127,7 +127,7 @@ class Menu(object):
         self.menu.style.display = 'none'
         menu_id = event.target.id[2:]
         item = menu_id in Menu.MENU and menu_id or self.item
-        print('click:', menu_id, self.menu.Id, self.prefix, self.originator, self.item)
+        #print('click:', menu_id, self.menu.Id, self.prefix, self.originator, self.item)
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
@@ -293,9 +293,11 @@ class GuiDraw(object):
             Id=o_Id, Class=o_Class, style=self._filter(kwargs)), **kwargs)
 
     def shape(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
-        #print(kwargs, self._filter(kwargs))
         shaper = self.doc[o_Id].style
         shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
+        #print('shape', o_Id, shaper, shaper.left, kwargs, self._filter(kwargs))
+        if 's_width' in kwargs or 's_lenght' in kwargs:
+            shaper.width, shaper.lenght = kwargs['s_width'], kwargs['s_lenght']
 
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -359,11 +361,12 @@ class Gui(GuiDraw):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def load(self, cmd=None):
-        def render(o_gcomp, o_placeid, **kwargs):
+        def render(o_gcomp, o_placeid=None, **kwargs):
             targ_id = kwargs['o_Id'].split('_')[1]
+            place = o_placeid and self.doc[o_placeid]
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
-                self.deliverables[o_gcomp], o_place=self.doc[o_placeid], **kwargs)
+                self.deliverables[o_gcomp], o_place=place, **kwargs)
 
         commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
         print('load:', self.control, self.storage['_JPT_' + (cmd or self.game)])
@@ -374,7 +377,7 @@ class Gui(GuiDraw):
             cmd['o_placeid'] = cmd.pop('o_place').id
         elif 'o_place' in cmd:
             cmd.pop('o_place')
-        print('save,', cmd)
+        #print('save,', cmd)
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
@@ -453,7 +456,7 @@ class Gui(GuiDraw):
         def _start(ev):
             self.offx = ev.x - self.book.offsetLeft - prop_box.offsetLeft
             self.offy = ev.y - self.book.offsetTop - prop_box.offsetTop
-            print(ev, ev.data, ev.target.id, self.offx, self.offy)
+            #print(ev, ev.data, ev.target.id, self.offx, self.offy)
             ev.data['text'] = ev.target.id
             ev.stopPropagation()
             # permitir que o objeto arrastado seja movido
@@ -462,7 +465,11 @@ class Gui(GuiDraw):
         def dropmove(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
             self.book <= prop
-            prop.style.left, prop.style.top = ev.x - offx-self.offx, ev.y - offy - self.offy
+            kwargs = dict(
+                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', 
+                s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
+            self.save(kwargs)
+            self.control.activate(self.shape, **kwargs)
             self.book.unbind('drop')
             prop_box.style.left = -90000
             prop_size.style.left = -90000
@@ -481,9 +488,12 @@ class Gui(GuiDraw):
             #w, h = abs(ev.x - cx), abs(y - cy)
             prop_box.style.left = -90000
             prop_size.style.left = -90000
-            props = prop.style
-            print('dropsize', x, y, w, h)
-            props.left, props.top, props.width, props.height = x, y, 2*w, 2*h
+            #print('dropsize', x, y, w, h)
+            kwargs = dict(
+                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', 
+                s_left=x, s_top=y, s_width=2*w, s_lenght=2*h)
+            self.save(kwargs)
+            self.control.activate(self.shape, **kwargs)
             prop_box.unbind('dragstart', dragstart)
             prop_size.unbind('dragstart', sizestart)
 

@@ -251,8 +251,8 @@ class DoShape(Command):
     """Shape current element."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Delete current element."""
-        #print('DoUp:', o_Id, employ)
-        element = fab.shape(o_Id)
+        #print('DoShape:', o_Id, employ)
+        element = fab.shape(o_Id, **kwargs)
         element.deploy(employ)
 
 
