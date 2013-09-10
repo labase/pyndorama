@@ -292,6 +292,11 @@ class GuiDraw(object):
         return self._locate(o_place, self.html.DIV(
             Id=o_Id, Class=o_Class, style=self._filter(kwargs)), **kwargs)
 
+    def shape(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
+        #print(kwargs, self._filter(kwargs))
+        shaper = self.doc[o_Id].style
+        shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
+
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
         o_place.removeChild(self.doc[o_Id])
@@ -339,7 +344,7 @@ class Gui(GuiDraw):
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(
             div=self.div, iframe=self.iframe, img=self.sprite, delete=self.delete,
-            drag=self.build_drag, drop=self.build_drop)
+            drag=self.build_drag, drop=self.build_drop, shape=self.shape)
 
     def object_context(self, ev):
         ev.stopPropagation()
