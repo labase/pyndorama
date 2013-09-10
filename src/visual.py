@@ -162,20 +162,12 @@ class Menu(object):
         menu.style.left = self.gui.menuX
         menu.style.top = self.gui.menuY
 
-    def object_context(self, ev):
-        ev.stopPropagation()
-        ev.preventDefault()
-        self.gui.obj_id = ev.target.id
-        menu = Menu.MENU['ob_ctx'].menu
-        menu.style.display = 'block'
-        menu.style.left = self.gui.menuX
-        menu.style.top = self.gui.menuY
-
     def menu_balao(self, ev, menu):
         pass
 
     def menu_configurar(self, ev, menu):
-        pass
+        self.target, self.id = self, self.gui.obj_id
+        self.gui.sel_prop(self)
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
@@ -241,7 +233,7 @@ class Menu(object):
         def prop(o_place, **kwargs):
             try:
                 kwargs.update(o_cmd="DoAdd")
-                self.gui.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
+                self.gui.img(**kwargs).oncontextmenu = self.gui.object_context  # gui.sel_prop
                 self.gui.save(kwargs)
             except Exception:
                 print('ad_objeto place rejected:', o_place, kwargs)
@@ -346,8 +338,20 @@ class Gui(GuiDraw):
         self.img(self.start_div, o_Id=LGM, s_left=120, **KWA).onclick = self.start
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(
-            div=self.div, iframe=self.iframe, img=self.img, delete=self.delete,
+            div=self.div, iframe=self.iframe, img=self.sprite, delete=self.delete,
             drag=self.build_drag, drop=self.build_drop)
+
+    def object_context(self, ev):
+        ev.stopPropagation()
+        ev.preventDefault()
+        self.obj_id = ev.target.id
+        menu = Menu.MENU['ob_ctx'].menu
+        menu.style.display = 'block'
+        menu.style.left = ev.clientX + self.win.pageXOffset
+        menu.style.top = ev.clientY + self.win.pageYOffset
+
+    def sprite(self, cmd=None, **kwargs):
+        self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def load(self, cmd=None):
         def render(o_gcomp, o_placeid, **kwargs):
