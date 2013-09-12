@@ -140,6 +140,17 @@ class Holder(Thing):
                   for argument in dir(self) if argument[:2] in "o_ s_"})
 
 
+class Action(Holder):
+    """A placeholder describing an action to be executed by a holder."""
+
+    def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        Thing.ALL_THINGS['o_placeid'].append(self)
+        self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
+        (fab or self).register(o_Id, self)
+        #self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+        self._add_properties(**kwargs)
+
+
 class Locus(Thing):
     """A place where things happen."""
 
@@ -236,6 +247,14 @@ class DoAdd(Command):
         element = fab.employ(part, o_Id, **kwargs)
         #print ("DoAdd execute:", fab, part, o_Id, element, kwargs)
         element.deploy(employ)
+
+
+class DoExecute(Command):
+    """Execute the command associated with this element."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Deploy the current element to the front."""
+        #print('DoExecute:', o_Id, employ)
+        Thing.ALL_THINGS[o_Id].deploy(employ)
 
 
 class DoUp(Command):

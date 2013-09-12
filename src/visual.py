@@ -107,7 +107,7 @@ class Menu(object):
         menu_item = self.gui.img(menu.menu, **kwargs)
         menu_item.bind("click", menu.click)
         if self.activated and (item not in Menu.MENU):
-            #print('activated', item, menu_item)
+            print('activated', item, menu_item)
             Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
 
@@ -127,7 +127,7 @@ class Menu(object):
         self.menu.style.display = 'none'
         menu_id = event.target.id[2:]
         item = menu_id in Menu.MENU and menu_id or self.item
-        #print('click:', menu_id, self.menu.Id, self.prefix, self.originator, self.item)
+        print('click:', menu_id, self.menu.Id, self.prefix, self.item, item)
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
@@ -140,6 +140,7 @@ class Menu(object):
             self.menu.style.display = 'block'
             self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
             self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
+            self.gui.context_obj_id = ev.target.id[2:]
             return False
 
     def make_id(self, targ_id):
@@ -181,6 +182,7 @@ class Menu(object):
     def menu_pular(self, ev, menu):
         def thumb(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
+            self.activated = False
             self.build_item(o_Id, MENUITEM % o_item, menu)
         pane = menu.menu
         while (pane.hasChildNodes()):
@@ -215,6 +217,20 @@ class Menu(object):
             o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id[2:]
         )
         self.gui.control.activate(**kwargs)
+
+    def pular(self, ev, menu):
+        def jump(o_Id):
+            self.gui.doc[o_Id].onclick = self.gui.action
+
+        menu_id = ev.target.id[2:]
+        oid = self.make_id(menu_id)
+        kwargs = dict(
+            o_emp=self.activator, o_cmd="DoAdd", o_part="Action", o_Id=oid, o_gcomp='up',
+            o_item=menu_id, o_placeid=self.gui.context_obj_id
+        )
+        self.gui.control.activate(**kwargs)
+        self.gui.save(kwargs)
+        print('pular', kwargs)
 
     def ad_cenario(self, ev, menu):
         menu_id = ev.target.id[2:]
@@ -287,6 +303,9 @@ class GuiDraw(object):
         #print(args)
         return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
 
+    def up(self, o_Id, **kwargs):
+        self._locate(self.book, self.gui.doc[o_Id])
+
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
         return self._locate(o_place, self.html.DIV(
@@ -346,7 +365,7 @@ class Gui(GuiDraw):
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(
             div=self.div, iframe=self.iframe, img=self.sprite, delete=self.delete,
-            drag=self.build_drag, drop=self.build_drop, shape=self.shape)
+            drag=self.build_drag, drop=self.build_drop, shape=self.shape, up=self.up)
 
     def object_context(self, ev):
         ev.stopPropagation()
@@ -354,8 +373,11 @@ class Gui(GuiDraw):
         self.obj_id = ev.target.id
         menu = Menu.MENU['ob_ctx'].menu
         menu.style.display = 'block'
-        menu.style.left = ev.clientX + self.win.pageXOffset
-        menu.style.top = ev.clientY + self.win.pageYOffset
+        menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
+        menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
+
+    def action(self, event):
+        self.control.activate(o_emp=self.employ, o_cmd='DoExecute')
 
     def sprite(self, cmd=None, **kwargs):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
