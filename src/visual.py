@@ -5,9 +5,9 @@ Pyndorama - Visual
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: $Date: 2013/08/31 $
+:Date: $Date: 2013/09/13 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.1.6 $
+:Revision: $Revision: 0.1.7 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
@@ -31,8 +31,6 @@ EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
-#NO_MENU_DEFAULT = [dict(o_src=MENU % 'ad_objeto', s_padding='2px', o_click="props"),
-#                dict(o_src=MENU % 'ad_cenario', s_padding='2px', o_click="scenes")]
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
 MENU_PROP = ['apagar', 'balao', 'configurar', 'pular']
 DEFAULT = [
@@ -127,7 +125,7 @@ class Menu(object):
         self.menu.style.display = 'none'
         menu_id = event.target.id[2:]
         item = menu_id in Menu.MENU and menu_id or self.item
-        #print('click:', menu_id, self.menu.Id, self.prefix, self.originator, self.item)
+        #print('click:', menu_id, self.menu.Id, self.prefix, self.item, item)
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
         self.activate(self.command + item, event, obj)
@@ -140,6 +138,7 @@ class Menu(object):
             self.menu.style.display = 'block'
             self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
             self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
+            self.gui.context_obj_id = ev.target.id[2:]
             return False
 
     def make_id(self, targ_id):
@@ -181,6 +180,7 @@ class Menu(object):
     def menu_pular(self, ev, menu):
         def thumb(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
+            self.activated = False
             self.build_item(o_Id, MENUITEM % o_item, menu)
         pane = menu.menu
         while (pane.hasChildNodes()):
@@ -195,9 +195,6 @@ class Menu(object):
             #print('thumb', self.prefix, kwargs)
             #item = '/'.join(o_src[:-7].split('/')[:-2])
             self.build_item(o_Id, MENUITEM % o_item, menu)
-
-        #if menu in Menu.MENU:
-        #    self.book.removeChild(menu)
         pane = menu.menu
         while (pane.hasChildNodes()):
             pane.removeChild(pane.lastChild)
@@ -215,6 +212,20 @@ class Menu(object):
             o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id[2:]
         )
         self.gui.control.activate(**kwargs)
+
+    def pular(self, ev, menu):
+        def jump(o_Id, **kwargs):
+            self.gui.doc[o_Id].onclick = self.gui.action
+
+        menu_id = ev.target.id[2:]
+        oid = self.make_id(menu_id)
+        kwargs = dict(
+            o_emp=self.gui.act, o_cmd="DoAdd", o_part="Action", o_Id=oid,
+            o_gcomp='act', o_acomp='up', o_item=menu_id, o_placeid=self.gui.obj_id
+        )
+        self.gui.control.activate(**kwargs)
+        self.gui.save(kwargs)
+        #print('pular', kwargs)
 
     def ad_cenario(self, ev, menu):
         menu_id = ev.target.id[2:]
@@ -237,8 +248,6 @@ class Menu(object):
                 self.gui.save(kwargs)
             except Exception:
                 print('ad_objeto place rejected:', o_place, kwargs)
-            #print('up', self.prefix, o_Id)
-            #item = '/'.join(o_src[:-7].split('/')[:-2])
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
         oid = self.make_id(tid)
         kwargs = dict(
@@ -286,6 +295,12 @@ class GuiDraw(object):
     def _filter(self, args):
         #print(args)
         return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
+
+    def act(self, o_Id, **kwargs):
+        self.doc[o_Id].onclick = self.action
+
+    def up(self, o_Id, **kwargs):
+        self._locate(self.book, self.doc[o_Id])
 
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -346,7 +361,8 @@ class Gui(GuiDraw):
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(
             div=self.div, iframe=self.iframe, img=self.sprite, delete=self.delete,
-            drag=self.build_drag, drop=self.build_drop, shape=self.shape)
+            drag=self.build_drag, drop=self.build_drop, shape=self.shape,
+            up=self.up, act=self.act)
 
     def object_context(self, ev):
         ev.stopPropagation()
@@ -354,8 +370,11 @@ class Gui(GuiDraw):
         self.obj_id = ev.target.id
         menu = Menu.MENU['ob_ctx'].menu
         menu.style.display = 'block'
-        menu.style.left = ev.clientX + self.win.pageXOffset
-        menu.style.top = ev.clientY + self.win.pageYOffset
+        menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
+        menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
+
+    def action(self, event):
+        self.control.activate(o_emp=self.employ, o_Id=event.target.id, o_cmd='DoExecute')
 
     def sprite(self, cmd=None, **kwargs):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
@@ -366,7 +385,8 @@ class Gui(GuiDraw):
             place = o_placeid and self.doc[o_placeid]
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
-                self.deliverables[o_gcomp], o_place=place, **kwargs)
+                self.deliverables[o_gcomp], o_place=place,
+                o_placeid=o_placeid, **kwargs)
 
         commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
         print('load:', self.control, self.storage['_JPT_' + (cmd or self.game)])
@@ -466,7 +486,7 @@ class Gui(GuiDraw):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
             self.book <= prop
             kwargs = dict(
-                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', 
+                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
             self.save(kwargs)
             self.control.activate(self.shape, **kwargs)
@@ -490,7 +510,7 @@ class Gui(GuiDraw):
             prop_size.style.left = -90000
             #print('dropsize', x, y, w, h)
             kwargs = dict(
-                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', 
+                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=x, s_top=y, s_width=2*w, s_lenght=2*h)
             self.save(kwargs)
             self.control.activate(self.shape, **kwargs)
@@ -502,7 +522,7 @@ class Gui(GuiDraw):
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
-        print (ev.target.id, x, y, w, h, prop.style.left, prop.style.top)
+        #print ('GUi.sel_prop', ev.target.id, x, y, w, h)
         #prop.unbind('click')
         prop_box.bind('dragstart', dragstart)
         pboxs, psizes = prop_box.style, prop_size.style

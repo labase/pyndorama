@@ -5,14 +5,15 @@ Pyndorama - Model
 
 :Author: *Carlo E. T. Oliveira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/08/25
+:Date: 2013/09/13
 :Status: This is a "work in progress"
-:Revision: 0.4
+:Revision: 0.1.5
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
 Game model comprising of Loci and Actors
-0.4 Add commands for game action
+0.1.4 Add commands for game action
+0.1.5 Add selectable action to holder
 """
 THETHING = None
 
@@ -120,24 +121,47 @@ class Holder(Thing):
     """A placeholder for gui positioning scaffolding."""
 
     def __init__(self, fab=None, part=None, o_Id=None, **kwargs):
+        self.items = []
         if 'o_place' not in kwargs or not kwargs['o_place']:
             kwargs['o_placeid'] = THETHING.current.o_Id
         THETHING.current.append(self)
         self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         (fab or self).register(o_Id, self)
-        #self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
         self._add_properties(**kwargs)
-
-    def append(self, item):
-        """Append this item to the master container. """
-        return THETHING
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
-        #print('Holder deploy', {argument: getattr(self, argument)
-        #                        for argument in dir(self) if argument[:2] in "o_ s_"})
         employ(**{argument: getattr(self, argument)
                   for argument in dir(self) if argument[:2] in "o_ s_"})
+
+    def execute(self, employ=None, **kwargs):
+        """Execute a given action. """
+        [item.execute(employ=employ, **kwargs) for item in self.items]
+
+
+class Action(Holder):
+    """A placeholder describing an action to be executed by a holder."""
+
+    def __init__(self, fab=None, part=None, o_Id=None, o_placeid=None, **kwargs):
+        Thing.ALL_THINGS[o_placeid].append(self)
+        kwargs.update(o_part=self.__class__.__name__, o_Id=o_Id, o_placeid=o_placeid)
+        (fab or self).register(o_Id, self)
+        self._add_properties(**kwargs)
+
+    def deploy(self, employ=None, **kwargs):
+        """Deploy this thing at a certain site. """
+        args = {argument: getattr(self, argument)
+                for argument in dir(self) if argument[:2] in "o_ s_"}
+        args.update(o_Id=self.o_placeid)
+        #print("Action deploy", args)
+        employ(**args)
+
+    def execute(self, employ=None, **kwargs):
+        """Execute a given action. """
+        args = {argument: getattr(self, argument)
+                for argument in dir(self) if argument[:2] in "o_ s_"}
+        args.update(o_gcomp=self.o_acomp, o_Id=self.o_item)
+        employ(**args)
 
 
 class Locus(Thing):
@@ -238,6 +262,14 @@ class DoAdd(Command):
         element.deploy(employ)
 
 
+class DoExecute(Command):
+    """Execute the command associated with this element."""
+    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+        """Deploy the current element to the front."""
+        #print('DoExecute:', o_Id, employ)
+        Thing.ALL_THINGS[o_Id].execute(employ)
+
+
 class DoUp(Command):
     """Set element as current."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
@@ -276,8 +308,9 @@ def init():
     THETHING = Thing(o_Id='book')
     Thing.INVENTORY.update(
         Locus=Locus, Holder=Holder, TheThing=THETHING,
-        Grid=Grid, Dragger=Dragger)
+        Grid=Grid, Dragger=Dragger, Action=Action)
     Thing.CONTROL.update(
-        DoAdd=DoAdd, DoList=DoList, DoUp=DoUp, DoDel=DoDel, DoShape=DoShape)
+        DoAdd=DoAdd, DoList=DoList, DoUp=DoUp, DoDel=DoDel, DoShape=DoShape,
+        DoExecute=DoExecute)
     #print (Thing.INVENTORY, Thing.ALL_THINGS)
     return THETHING
