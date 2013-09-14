@@ -17,9 +17,6 @@ Pyndorama - Teste
 import unittest
 import model
 ITEM = 'it3m'
-ADM, HEA, PEC, PHA, END = 'adm1n head peca fase fim'.split()
-DRECORD = dict(adm1n=dict(name=ITEM, item_id=ITEM))
-#database.DRECORD = DRECORD
 
 
 class TestPyndoramaControl(unittest.TestCase):
@@ -28,52 +25,53 @@ class TestPyndoramaControl(unittest.TestCase):
         class _Gui(dict):
 
             def employ(self, **kwargs):
-                self['adm1n'].update(arg)
+                print('setUp employ')
+                self['adm1n'].update(kwargs)
                 return 'adm1n', 0001
 
-        database.DRECORD = _Record(DRECORD)
-        self.app = TestApp(app)
+        self.control = model.init()
+        self.gui = _Gui()
+        self.gui['adm1n'] = {}
+
+    def _action_load(self):
+        """load an action."""
+        self.control.activate(self.gui.employ, place=self.gui, **JEP0["E1"])
+        self.control.activate(self.gui.employ, place=self.gui, **JEP0["JAM"])
+        self.gui['adm1n'] = {}
+        self.control.activate(self.gui.employ, place=self.gui, **JEP0["JAC"])
+
+    def test_action_load(self):
+        """test load an action."""
+        self._action_load()
+        assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
         pass
 
-    def test_main(self):
-        "retorna o html do memit."
-        result = self.app.get('/')
-        db = database.DRECORD['adm1n']
-        assert 'date'in db, 'no time in %s' % db
-        assert result.status == '200 OK'
-        assert '">adm1n</div>' in result, 'no admin in %s' % result.body
-        pass
-
-    def _est_lib(self):
-        "retorna a biblioteca brython."
-        result = self.app.get('/brython.js')
-        assert result.status == '200 OK'
-        assert 'brython.js www.brython.info' in result, 'no brython in %s' % result.body[:200]
-        pass
-
-    def test_meme_py(self):
-        "retorna o arquivo control.py."
-        result = self.app.get('/control.py')
-        assert result.status == '200 OK'
-        assert 'Pyndorama - Principal' in result, 'no brython in %s' % result.body[:200]
-        pass
-
-    def _est_post_register(self):
-        "registra o cabecalho do teste."
-        #result = self.app.post('/record/head',dumps(DRECORD))
-        result = self.app.post_json('/record/head', DRECORD)
-        assert result.status == '200 OK'
-        assert 'it3m' in result, 'no admin in %s' % result.body
-        pass
-
-    def _est_post_piece(self):
-        "registra a colocacao de uma peca."
-        record = dict(adm1n=dict(pec=0, cas=0, tem=0))
-        result = self.app.post_json('/record/piece', record)
-        assert result.status == '200 OK'
-        assert 'pec' in result.body, 'no peca in %s' % result.body
-        pass
-
+    def test_action_execute(self):
+        """test execute an action."""
+        self._action_load()
+        self.gui['adm1n'] = {}
+        self.control.activate(o_emp=self.gui.employ, o_Id="o1_jeppeto/ampu.png", o_cmd='DoExecute')
+        assert self.gui['adm1n']["o_Id"] == "o1_EICA/1_1c.jpg", 'no admin in %s' % self.gui['adm1n']
+        assert self.gui['adm1n']["o_gcomp"] == "up", 'no admin in %s' % self.gui['adm1n']
 
 if __name__ == '__main__':
     unittest.main()
+
+JEP0 = dict(
+    E1={
+        "o_cmd": "DoAdd", "o_part": "Locus", "o_Id": "o1_EICA/1_1c.jpg",
+        "s_background": "url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat",
+        "s_width": 1100, "s_height": 800, "s_top": 0, "o_gcomp": "div", "s_backgroundSize": "100% 100%",
+        "s_left": 0, "s_position": "absolute", "o_item": "EICA/1_1c.jpg", "o_placeid": "book"},
+    E2={"o_cmd": "DoAdd", "o_part": "Locus", "o_Id": "o1_EICA/2_1c.jpg",
+        "s_background": "url(https://activufrj.nce.ufrj.br/rest/studio/EICA/2_1c.jpg?size=G) no-repeat",
+        "s_width": 1100, "s_height": 800, "s_top": 0, "o_gcomp": "div", "s_backgroundSize": "100% 100%",
+        "s_left": 0, "s_position": "absolute", "o_item": "EICA/2_1c.jpg", "o_placeid": "book"},
+    JAM={"o_Id": "o1_jeppeto/ampu.png", "o_gcomp": "img",
+         "o_item": "jeppeto/ampu.png", "o_part": "Holder", "o_placeid": "o1_EICA/2_1c.jpg",
+         "o_src": "https: //activufrj.nce.ufrj.br/rest/studio/jeppeto/ampu.png?size=G",
+         "o_title": "jeppeto/ampu.png", "s_float": "left", "s_left": 444,
+         "s_position": "absolute", "s_top": 187, "o_cmd": "DoAdd"},
+    JAC={"o_cmd": "DoAdd", "o_part": "Action", "o_Id": "o1_o1_EICA/1_1c.jpg", "o_gcomp": "act",
+         "o_act": "DoUp", "o_acomp": "up", "o_item": "o1_EICA/1_1c.jpg", "o_placeid": "o1_jeppeto/ampu.png"}
+)

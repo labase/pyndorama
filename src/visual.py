@@ -221,7 +221,8 @@ class Menu(object):
         oid = self.make_id(menu_id)
         kwargs = dict(
             o_emp=self.gui.act, o_cmd="DoAdd", o_part="Action", o_Id=oid,
-            o_gcomp='act', o_acomp='up', o_item=menu_id, o_placeid=self.gui.obj_id
+            o_gcomp='act', o_act='DoUp', o_acomp='up',
+            o_item=menu_id, o_placeid=self.gui.obj_id
         )
         self.gui.control.activate(**kwargs)
         self.gui.save(kwargs)
@@ -450,12 +451,12 @@ class Gui(GuiDraw):
         req.send()
 
     def employ(self, o_gcomp=None, o_placeid=None, **kwargs):
-        place = self.doc
-        #print ('employ', o_place, o_gcomp, kwargs)
+        place = kwargs.pop('o_place') or self.doc
         try:
             place = self.doc[o_placeid]
         except Exception:
-            print('place rejected:', o_placeid)
+            print('place rejected:', o_placeid, o_gcomp, kwargs)
+        print ('employ', place, o_placeid, o_gcomp, kwargs)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
     def sel_prop(self, ev):

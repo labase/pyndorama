@@ -160,8 +160,9 @@ class Action(Holder):
         """Execute a given action. """
         args = {argument: getattr(self, argument)
                 for argument in dir(self) if argument[:2] in "o_ s_"}
-        args.update(o_gcomp=self.o_acomp, o_Id=self.o_item)
-        employ(**args)
+        args.update(o_cmd=self.o_act, o_gcomp=self.o_acomp, o_Id=self.o_item)
+        #employ(**args)
+        THETHING.activate(employ, **args)
 
 
 class Locus(Thing):
@@ -258,7 +259,7 @@ class DoAdd(Command):
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Add an element and deploy a given part."""
         element = fab.employ(part, o_Id, **kwargs)
-        #print ("DoAdd execute:", fab, part, o_Id, element, kwargs)
+        #print ("DoAdd execute:", fab, part, o_Id, element, employ, kwargs)
         element.deploy(employ)
 
 
@@ -276,7 +277,8 @@ class DoUp(Command):
         """Deploy the current element to the front."""
         #print('DoUp:', o_Id, employ)
         element = fab.up(o_Id)
-        element.deploy(employ)
+        employ(o_Id=element.o_Id, **kwargs)
+        #element.deploy(employ)
 
 
 class DoShape(Command):
