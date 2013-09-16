@@ -16,12 +16,36 @@ Pyndorama - Teste
 """
 import unittest
 import model
+from visual import Builder
+from visual import Gui
 ITEM = 'it3m'
 
 
 class TestPyndoramaControl(unittest.TestCase):
 
     def setUp(self):
+        class Brython:
+            def __init__(self):
+                self.DOC, self.SVG, self.HTML, self.AJAX = [self]*4
+                self.doc = self
+                self.WIN, self.STORAGE, self.JSON, self.TIME = [self]*4
+                self.__getitem__ = self.DIV = self.div = self.IMG = self.nop
+                self.div = self.img = self.deploy = self.employ = self.nop
+                self.search = ''
+                self.location = self.target = self
+                self.items = self.evs = []
+
+            def activate(self, **kwargs):
+                self.aargs = kwargs
+
+            def bind(self, ev, hook):
+                self.evs.append(hook)
+                return self
+                return self
+
+            def nop(self, *args, **kwargs):
+                return self
+
         class _Gui(dict):
 
             def employ(self, **kwargs):
@@ -30,6 +54,10 @@ class TestPyndoramaControl(unittest.TestCase):
                 return 'adm1n', 0001
 
         self.control = model.init()
+        self.br = Brython()
+        self.builder = Builder(self.br, self.br)
+        self.app = Gui(self.br)
+        self.builder.build_all(self.br)
         self.gui = _Gui()
         self.gui['adm1n'] = {}
 
@@ -44,6 +72,20 @@ class TestPyndoramaControl(unittest.TestCase):
         """test load an action."""
         self._action_load()
         assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
+        pass
+
+    def test_action_baloon(self):
+        """test baloon action."""
+        self._action_load()
+        self.br.stopPropagation = self.br.preventDefault = self.br.nop
+        self.br.style = self.br.win = self.br
+        self.br.display = self.br.clientX = self.br.clientY = 0
+        self.br.pageXOffset = self.br.pageYOffset = 0
+        self.br.offsetTop = self.br.offsetLeft = 0
+        self.br.id = 'm_balao'
+        self.br.oncontextmenu(self.br)
+        self.br.evs[0](self.br)
+        assert self.br.aargs["o_Id"] == "o1_balao", 'no balao in %s' % self.br.aargs
         pass
 
     def test_action_execute(self):

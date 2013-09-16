@@ -33,6 +33,7 @@ E_MENU = lambda item, ck="act_rubber": dict(
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
 MENU_PROP = ['apagar', 'balao', 'configurar', 'pular']
+MENU_TEXT = ['wiki', 'balao', 'remover']
 DEFAULT = [
 ]
 
@@ -74,6 +75,7 @@ class Builder:
         self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=EICA, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
+        self.tmenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
 
     def build_all(self, gui):
         self.gui = gui
@@ -96,6 +98,7 @@ class Menu(object):
         self.originator = originator
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
+        self.menu_wiki = self.menu_ad
         menu and self.build_menu(menu)
 
     def build_item(self, item, source, menu):
@@ -125,9 +128,9 @@ class Menu(object):
         self.menu.style.display = 'none'
         menu_id = event.target.id[2:]
         item = menu_id in Menu.MENU and menu_id or self.item
-        #print('click:', menu_id, self.menu.Id, self.prefix, self.item, item)
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
+        #print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
         self.activate(self.command + item, event, obj)
 
     def contextmenu(self, ev):
@@ -162,6 +165,24 @@ class Menu(object):
         menu.style.top = self.gui.menuY
 
     def menu_balao(self, ev, menu):
+        def prop(o_place, **kwargs):
+            try:
+                kwargs.update(o_cmd="DoAdd")
+                print("menu_balao prop", kwargs)
+                t = self.gui.div('OOOOOO', **kwargs)
+                t.oncontextmenu = self.gui.object_context  # gui.sel_prop
+                t.text = 'Lorem Ipsum'
+                #self.gui.save(kwargs)
+            except Exception:
+                print('ad_objeto place rejected:', o_place, kwargs)
+        offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, 'balao'
+        oid = self.make_id(tid)
+        kwargs = dict(
+            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="div",
+            s_width=200, s_height=150, o_item=tid, o_Id=oid,
+            s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
+            s_left=self.gui.menuX-offx, o_title=tid)
+        self.gui.control.activate(**kwargs)
         pass
 
     def menu_configurar(self, ev, menu):
@@ -279,6 +300,7 @@ class Menu(object):
             o_item=tid, o_src=SCENE % tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid)
+        print('wiki', kwargs)
         self.gui.control.activate(**kwargs)
 
 
