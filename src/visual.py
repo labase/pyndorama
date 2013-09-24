@@ -298,7 +298,7 @@ class Menu(object):
                 t = self.gui.div('OOOOOO', **kwargs)
                 t.oncontextmenu = self.gui.object_context  # gui.sel_prop
                 t.text = 'Lorem Ipsum'
-                #self.gui.save(kwargs)
+                self.gui.save(kwargs)
             except Exception:
                 print('ad_objeto place rejected:', o_place, kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, 'balao'
@@ -307,7 +307,7 @@ class Menu(object):
             o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="div",
             s_width=200, s_height=150, o_item=tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
-            s_left=self.gui.menuX-offx, o_title=tid)
+            s_left=self.gui.menuX-offx, o_title=tid, o_text="Lorem Ipsum")
         self.gui.control.activate(**kwargs)
         pass
 
@@ -319,6 +319,8 @@ class GuiDraw(object):
         #print('_locate', place, element, o_placeid, kwargs)
         if 's_backgroundSize' in kwargs:
             element.style.backgroundSize = kwargs['s_backgroundSize']
+        if 'o_text' in kwargs:
+            element.text = kwargs['o_text']
         locus = o_placeid and self.doc[o_placeid] or place
         locus <= element
         return element
@@ -342,8 +344,8 @@ class GuiDraw(object):
         shaper = self.doc[o_Id].style
         shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
         #print('shape', o_Id, shaper, shaper.left, kwargs, self._filter(kwargs))
-        if 's_width' in kwargs or 's_lenght' in kwargs:
-            shaper.width, shaper.lenght = kwargs['s_width'], kwargs['s_lenght']
+        if 's_width' in kwargs or 's_height' in kwargs:
+            shaper.width, shaper.lenght = kwargs['s_width'], kwargs['s_height']
 
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -519,17 +521,19 @@ class Gui(GuiDraw):
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
-            self.save(kwargs)
-            self.control.activate(self.shape, **kwargs)
-            self.book.unbind('drop')
-            prop_box.style.left = -90000
-            prop_size.style.left = -90000
-            ev.preventDefault()
+            _dropend(ev, kwargs)
 
-        def dropsize(ev):
+        def _dropend(ev, kwargs):
             ev.preventDefault()
             ev.stopPropagation()
             self.book.unbind('drop')
+            self.save(kwargs)
+            self.control.activate(self.shape, **kwargs)
+            prop_box.style.left = -90000
+            prop_size.style.left = -90000
+            prop.contentEditable = "false"
+
+        def dropsize(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
             self.book <= prop
             cx = prop_box.offsetLeft + prop_box.offsetWidth // 2
@@ -543,10 +547,7 @@ class Gui(GuiDraw):
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=x, s_top=y, s_width=2*w, s_lenght=2*h)
-            self.save(kwargs)
-            self.control.activate(self.shape, **kwargs)
-            prop_box.unbind('dragstart', dragstart)
-            prop_size.unbind('dragstart', sizestart)
+            _dropend(ev, kwargs)
 
         def dragover(ev):
             #print(ev, ev.x, ev.y)
@@ -564,6 +565,7 @@ class Gui(GuiDraw):
         self.book <= prop_size
         self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
+        prop.contentEditable = "true"
         prop_box <= prop
         #self.div(self.book, s_width=w, s_height=h, s_top=y, s_left=x, s_position='absolute',
         #         s_backgroundColor="white")  # , s_opacity=0.5)
