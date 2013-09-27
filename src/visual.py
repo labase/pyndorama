@@ -26,8 +26,8 @@ MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
 EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
         "EICA/3_1c.jpg", "EICA/3_2.png", "EICA/4_2c.jpg"]
-EICAP = ["jeppeto/ampu.png", "jeppeto/ampulheta.png", "jeppeto/astrolabio.png",
-         "jeppeto/Astrolabio.png", "jeppeto/astrolabiobserv.png"]
+EICAP = ["jeppeto/bule0.png", "jeppeto/vaso0.png", "jeppeto/anfora.png",
+         "jeppeto/agave.png", "jeppeto/moita.png", "jeppeto/palmeira.png"]
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
@@ -75,8 +75,8 @@ class Builder:
         self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=EICA, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
-        self.omenu = Menu(self.gui, 'tx_ctx', menu=MENU_PROP, activate=True)
-        self.tmenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
+        self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_PROP, activate=True)
+        self.wenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
 
     def build_all(self, gui):
         self.gui = gui
@@ -170,17 +170,39 @@ class Menu(object):
         self.gui.sel_prop(self)
 
     def menu_editar(self, ev, menu):
-        def delete(o_item, o_Id, **kwargs):
-            #print('thumb', self.prefix, kwargs)
-            self.gui.doc[o_Id].style.display = 'none'
-            kwargs.update(o_cmd='DoDel', o_Id=o_Id, o_gcomp='delete')
+        prop = self.gui.doc[self.gui.obj_id]
+        prop_box = self.gui.doc["propbox"]
+        prop_size = self.gui.doc["propsize"]
+        prop_size.style.backgroundColor = 'green'
+        prop.style.backgroundColor = 'white'
+        prop_place = prop.parentNode
+
+        def _dropend(ev):
+            offx, offy = self.book.offsetLeft, self.book.offsetTop
+            kwargs = dict(
+                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', o_text=prop.html,
+                s_left=prop.offsetLeft, s_top=prop.offsetTop)
+
+            #prop_place <= prop
+            prop_size.style.backgroundColor = 'black'
+            ev.preventDefault()
+            ev.stopPropagation()
             self.gui.save(kwargs)
-            
-        kwargs = dict(
-            o_cmd='DoShape', o_Id=self.gui.obj_id, o_gcomp='shape',
-            s_transform='rotate(-90deg)')
-        #self.save(kwargs)
-        self.gui.control.activate(self.gui.shape, **kwargs)
+            prop.style.backgroundColor = 'transparent'
+            prop_box.style.left = -90000
+            prop_size.style.left = -90000
+            prop.contentEditable = "false"
+
+        x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
+        pboxs, psizes = prop_box.style, prop_size.style
+        #pboxs.left, pboxs.top, pboxs.width, prop_box.style.height = x, y, w, h
+        #self.gui.book <= prop_box
+        prop_size.bind('click', _dropend)
+        psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
+        #self.gui.book <= prop_size
+        #prop.style.left, prop.style.top = 0, 0
+        prop.contentEditable = "true"
+        #prop_box <= prop
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
@@ -266,7 +288,7 @@ class Menu(object):
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
         oid = self.make_id(tid)
         kwargs = dict(
-            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="img",
+            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="sprite",
             o_item=tid, o_src=SCENE % tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid)
@@ -300,11 +322,11 @@ class Menu(object):
                 t.text = 'Lorem Ipsum'
                 self.gui.save(kwargs)
             except Exception:
-                print('ad_objeto place rejected:', o_place, kwargs)
+                print('text baloon rejected:', o_place, kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, 'balao'
         oid = self.make_id(tid)
         kwargs = dict(
-            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="div",
+            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="text",
             s_width=200, s_height=150, o_item=tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid, o_text="Lorem Ipsum")
@@ -332,8 +354,9 @@ class GuiDraw(object):
     def act(self, o_Id, **kwargs):
         self.doc[o_Id].onclick = self.action
 
-    def up(self, o_Id, **kwargs):
-        self._locate(self.book, self.doc[o_Id])
+    def up(self, o_Id, o_place=self.book, **kwargs):
+        print('up', kwargs)
+        self._locate(o_place, self.doc[o_Id], **kwargs)
 
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -343,9 +366,11 @@ class GuiDraw(object):
     def shape(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         shaper = self.doc[o_Id].style
         shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
-        #print('shape', o_Id, shaper, shaper.left, kwargs, self._filter(kwargs))
+        print('shape', o_Id, shaper, shaper.left, kwargs)
         if 's_width' in kwargs or 's_height' in kwargs:
             shaper.width, shaper.lenght = kwargs['s_width'], kwargs['s_height']
+        if 'o_text' in kwargs:
+            self.doc[o_Id].html = kwargs['o_text']
 
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -393,9 +418,9 @@ class Gui(GuiDraw):
         self.img(self.start_div, o_Id=LGM, s_left=120, **KWA).onclick = self.start
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
         self.deliverables = dict(
-            div=self.div, iframe=self.iframe, img=self.sprite, delete=self.delete,
+            div=self.div, iframe=self.iframe, sprite=self.sprite, text=self.text,
             drag=self.build_drag, drop=self.build_drop, shape=self.shape,
-            up=self.up, act=self.act)
+            up=self.up,  delete=self.delete, act=self.act)
 
     def object_context(self, ev):
         ev.stopPropagation()
@@ -408,6 +433,9 @@ class Gui(GuiDraw):
 
     def action(self, event):
         self.control.activate(o_emp=self.employ, o_Id=event.target.id, o_cmd='DoExecute')
+
+    def text(self, cmd=None, **kwargs):
+        self.div(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def sprite(self, cmd=None, **kwargs):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
@@ -495,6 +523,7 @@ class Gui(GuiDraw):
         prop = self.doc[ev.target.id]
         prop_box = self.doc["propbox"]
         prop_size = self.doc["propsize"]
+        prop_place = prop.parentNode
 
         def dragstart(ev):
             prop_box.unbind('dragstart', dragstart)
@@ -517,13 +546,14 @@ class Gui(GuiDraw):
 
         def dropmove(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
-            self.book <= prop
+            #self.book <= prop
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
             _dropend(ev, kwargs)
 
         def _dropend(ev, kwargs):
+            prop_place <= prop
             ev.preventDefault()
             ev.stopPropagation()
             self.book.unbind('drop')
@@ -531,19 +561,13 @@ class Gui(GuiDraw):
             self.control.activate(self.shape, **kwargs)
             prop_box.style.left = -90000
             prop_size.style.left = -90000
-            prop.contentEditable = "false"
 
         def dropsize(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
-            self.book <= prop
             cx = prop_box.offsetLeft + prop_box.offsetWidth // 2
             cy = prop_box.offsetTop + prop_box.offsetHeight // 2
             w, h = abs(ev.x - offx - cx), abs(ev.y - offy - cy)
             x, y = cx - w, cy - h
-            #w, h = abs(ev.x - cx), abs(y - cy)
-            prop_box.style.left = -90000
-            prop_size.style.left = -90000
-            #print('dropsize', x, y, w, h)
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=x, s_top=y, s_width=2*w, s_lenght=2*h)
@@ -565,10 +589,7 @@ class Gui(GuiDraw):
         self.book <= prop_size
         self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
-        prop.contentEditable = "true"
         prop_box <= prop
-        #self.div(self.book, s_width=w, s_height=h, s_top=y, s_left=x, s_position='absolute',
-        #         s_backgroundColor="white")  # , s_opacity=0.5)
 
     def act_rubber(self, ev):
         print('menu:', ev)
