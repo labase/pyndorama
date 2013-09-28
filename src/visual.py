@@ -175,7 +175,6 @@ class Menu(object):
         prop_size = self.gui.doc["propsize"]
         prop_size.style.backgroundColor = 'green'
         prop.style.backgroundColor = 'white'
-        prop_place = prop.parentNode
 
         def _dropend(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
@@ -183,10 +182,10 @@ class Menu(object):
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', o_text=prop.html,
                 s_left=prop.offsetLeft, s_top=prop.offsetTop)
 
-            #prop_place <= prop
             prop_size.style.backgroundColor = 'black'
             ev.preventDefault()
             ev.stopPropagation()
+            self.gui.control.activate(self.gui.shape, **kwargs)
             self.gui.save(kwargs)
             prop.style.backgroundColor = 'transparent'
             prop_box.style.left = -90000
@@ -195,14 +194,10 @@ class Menu(object):
 
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
         pboxs, psizes = prop_box.style, prop_size.style
-        #pboxs.left, pboxs.top, pboxs.width, prop_box.style.height = x, y, w, h
-        #self.gui.book <= prop_box
         prop_size.bind('click', _dropend)
         psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
-        #self.gui.book <= prop_size
-        #prop.style.left, prop.style.top = 0, 0
+        self.gui.book <= prop_size
         prop.contentEditable = "true"
-        #prop_box <= prop
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
@@ -354,9 +349,9 @@ class GuiDraw(object):
     def act(self, o_Id, **kwargs):
         self.doc[o_Id].onclick = self.action
 
-    def up(self, o_Id, o_place=self.book, **kwargs):
+    def up(self, o_Id, **kwargs):
         print('up', kwargs)
-        self._locate(o_place, self.doc[o_Id], **kwargs)
+        self._locate(self.book, self.doc[o_Id], **kwargs)
 
     def div(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         #print(kwargs, self._filter(kwargs))
@@ -367,14 +362,15 @@ class GuiDraw(object):
         shaper = self.doc[o_Id].style
         shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
         print('shape', o_Id, shaper, shaper.left, kwargs)
-        if 's_width' in kwargs or 's_height' in kwargs:
-            shaper.width, shaper.lenght = kwargs['s_width'], kwargs['s_height']
+        if ('s_width' in kwargs) or ('s_height' in kwargs):
+            shaper.width, shaper.height = kwargs['s_width'], kwargs['s_height']
         if 'o_text' in kwargs:
             self.doc[o_Id].html = kwargs['o_text']
 
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
-        #print(kwargs, self._filter(kwargs))
-        o_place.removeChild(self.doc[o_Id])
+        print('delete', kwargs)
+        place = o_place or self.doc[kwargs['o_placeid']]
+        place.removeChild(self.doc[o_Id])
 
     def iframe(
         self, o_place=None, o_width=10, o_height=10, o_Id=None, o_Class="frame",
@@ -546,7 +542,6 @@ class Gui(GuiDraw):
 
         def dropmove(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
-            #self.book <= prop
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
@@ -570,7 +565,7 @@ class Gui(GuiDraw):
             x, y = cx - w, cy - h
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
-                s_left=x, s_top=y, s_width=2*w, s_lenght=2*h)
+                s_left=x, s_top=y, s_width=2*w, s_height=2*h)
             _dropend(ev, kwargs)
 
         def dragover(ev):
