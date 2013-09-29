@@ -32,8 +32,9 @@ E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
-MENU_PROP = ['apagar', 'balao', 'configurar', 'editar', 'pular']
-MENU_TEXT = ['wiki', 'balao', 'editar', 'remover']
+MENU_PROP = ['apagar', 'configurar', 'pular']
+MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular']
+MENU_TEXT = ['balao']
 DEFAULT = [
 ]
 
@@ -75,7 +76,7 @@ class Builder:
         self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=EICA, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
-        self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_PROP, activate=True)
+        self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_BALAO, activate=True)
         self.wenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
 
     def build_all(self, gui):
@@ -171,6 +172,12 @@ class Menu(object):
 
     def menu_editar(self, ev, menu):
         prop = self.gui.doc[self.gui.obj_id]
+        kwargs = dict(
+            o_emp=self.gui.shape, o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
+            s_left=prop.offsetLeft, s_top=prop.offsetTop)
+        self._editar(ev, prop, kwargs)
+
+    def _editar(self, ev, prop, kwargs):
         prop_box = self.gui.doc["propbox"]
         prop_size = self.gui.doc["propsize"]
         prop_size.style.backgroundColor = 'green'
@@ -178,15 +185,14 @@ class Menu(object):
 
         def _dropend(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
-            kwargs = dict(
-                o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape', o_text=prop.html,
-                s_left=prop.offsetLeft, s_top=prop.offsetTop)
 
             prop_size.style.backgroundColor = 'black'
             ev.preventDefault()
             ev.stopPropagation()
-            self.gui.control.activate(self.gui.shape, **kwargs)
+            kwargs.update(o_text=prop.html)
+            print('_dropend', kwargs)
             self.gui.save(kwargs)
+            self.gui.control.activate(**kwargs)
             prop.style.backgroundColor = 'transparent'
             prop_box.style.left = -90000
             prop_size.style.left = -90000
@@ -308,24 +314,30 @@ class Menu(object):
         self.gui.control.activate(**kwargs)
 
     def menu_balao(self, ev, menu):
-        def prop(o_place, **kwargs):
+        def _prop(o_place, **kwargs):
             try:
-                kwargs.update(o_cmd="DoAdd")
+                kwargs.update(o_cmd="DoAdd", o_emp=self.gui.text)
                 print("menu_balao prop", kwargs)
-                t = self.gui.div('OOOOOO', **kwargs)
-                t.oncontextmenu = self.gui.object_context  # gui.sel_prop
-                t.text = 'Lorem Ipsum'
-                self.gui.save(kwargs)
+                prop = self.gui.div('OOOOOO', **kwargs)
+                self._editar(ev, prop, kwargs)
+                #prop.oncontextmenu = self.gui.text_context  # gui.sel_prop
+                #t.text = 'Lorem Ipsum'
+                #self.gui.save(kwargs)
             except Exception:
-                print('text baloon rejected:', o_place, kwargs)
+                print('text baloon rejected:', kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, 'balao'
         oid = self.make_id(tid)
         kwargs = dict(
-            o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="text",
+            o_emp=_prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="text",
             s_width=200, s_height=150, o_item=tid, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid, o_text="Lorem Ipsum")
         self.gui.control.activate(**kwargs)
+        #prop = self.gui.div(**kwargs)
+        #prop = self.gui.doc[self.gui.obj_id]
+        #kwargs = dict(
+        #    o_emp=self.gui.shape, o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
+        #    s_left=prop.offsetLeft, s_top=prop.offsetTop)
         pass
 
 
@@ -337,7 +349,7 @@ class GuiDraw(object):
         if 's_backgroundSize' in kwargs:
             element.style.backgroundSize = kwargs['s_backgroundSize']
         if 'o_text' in kwargs:
-            element.text = kwargs['o_text']
+            element.html = kwargs['o_text']
         locus = o_placeid and self.doc[o_placeid] or place
         locus <= element
         return element
@@ -427,30 +439,41 @@ class Gui(GuiDraw):
         menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
         menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
 
+    def text_context(self, ev):
+        ev.stopPropagation()
+        ev.preventDefault()
+        self.obj_id = ev.target.id
+        menu = Menu.MENU['tx_ctx'].menu
+        menu.style.display = 'block'
+        menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
+        menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
+
     def action(self, event):
         self.control.activate(o_emp=self.employ, o_Id=event.target.id, o_cmd='DoExecute')
 
     def text(self, cmd=None, **kwargs):
-        self.div(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
+        self.div(**kwargs).oncontextmenu = self.text_context  # gui.sel_prop
 
     def sprite(self, cmd=None, **kwargs):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def load(self, cmd=None):
-        def render(o_gcomp, o_placeid=None, **kwargs):
+        def render(o_gcomp, **kwargs):
             targ_id = kwargs['o_Id'].split('_')[1]
-            place = o_placeid and self.doc[o_placeid]
+            if 'o_placeid' in kwargs:
+                placeid = kwargs['o_placeid']
+                place = self.doc[placeid]
+                kwargs.update(o_place=place)
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
-                self.deliverables[o_gcomp], o_place=place,
-                o_placeid=o_placeid, **kwargs)
+                self.deliverables[o_gcomp], **kwargs)
 
         commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
         print('load:', self.control, self.storage['_JPT_' + (cmd or self.game)])
         [render(**kwargs) for kwargs in commands]
 
     def save(self, cmd):
-        if 'o_place' in cmd and cmd['o_place']:
+        if (not 'o_placeid' in cmd) and 'o_place' in cmd and cmd['o_place']:
             cmd['o_placeid'] = cmd.pop('o_place').id
         elif 'o_place' in cmd:
             cmd.pop('o_place')
