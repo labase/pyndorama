@@ -141,6 +141,7 @@ class Menu(object):
             ev.preventDefault()
             #print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
             self.menu.style.display = 'block'
+            self.gui.current_menu = self.menu
             self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
             self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
             self.gui.context_obj_id = ev.target.id[2:]
@@ -157,6 +158,7 @@ class Menu(object):
     def menu_ad(self, ev, menu):
         menu = menu.menu
         menu.style.display = 'block'
+        self.gui.current_menu = menu
         menu.style.left = self.gui.menuX
         menu.style.top = self.gui.menuY
 
@@ -224,6 +226,7 @@ class Menu(object):
             pane.removeChild(pane.lastChild)
         self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
         pane.style.display = 'block'
+        self.gui.current_menu = pane
         pane.style.left = self.gui.menuX
         pane.style.top = self.gui.menuY
 
@@ -237,6 +240,7 @@ class Menu(object):
             pane.removeChild(pane.lastChild)
         self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
         pane.style.display = 'block'
+        self.gui.current_menu = pane
         pane.style.left = self.gui.menuX
         pane.style.top = self.gui.menuY
 
@@ -413,6 +417,7 @@ class Gui(GuiDraw):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.storage, self.json = gui.STORAGE, gui.JSON
+        self.current_menu = self.menuX = self.menuY = self.obj_id = None
         self.main = self.doc["base"]
         self.book = self.doc["book"]
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
@@ -429,12 +434,19 @@ class Gui(GuiDraw):
             div=self.div, iframe=self.iframe, sprite=self.sprite, text=self.text,
             drag=self.build_drag, drop=self.build_drop, shape=self.shape,
             up=self.up,  delete=self.delete, act=self.act)
+        self.doc.onclick = self.revoke_menu
+
+    def revoke_menu(self, ev):
+        ev.stopPropagation()
+        ev.preventDefault()
+        if self.current_menu:
+            self.current_menu.style.display = 'none'
 
     def object_context(self, ev):
         ev.stopPropagation()
         ev.preventDefault()
         self.obj_id = ev.target.id
-        menu = Menu.MENU['ob_ctx'].menu
+        menu = self.current_menu = Menu.MENU['ob_ctx'].menu
         menu.style.display = 'block'
         menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
         menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
@@ -443,7 +455,7 @@ class Gui(GuiDraw):
         ev.stopPropagation()
         ev.preventDefault()
         self.obj_id = ev.target.id
-        menu = Menu.MENU['tx_ctx'].menu
+        menu = self.current_menu = Menu.MENU['tx_ctx'].menu
         menu.style.display = 'block'
         menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
         menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
