@@ -14,13 +14,10 @@ Pyndorama - Visual
 Visual module with HTML5 factory and declarative builder.
 """
 ACTIV = "https://activufrj.nce.ufrj.br"
-SOURCE = 'mansao'
 SCENE = ACTIV + '/rest/studio/%s?size=G'
 TIMEOUT = 5  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
-IMG = 'http://j.mp/aegadian_sea'
-SHIP = 'view/Trireme_1.png'
 MENUPX = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
 MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
@@ -30,7 +27,7 @@ EICAP = ["jeppeto/bule0.png", "jeppeto/vaso0.png", "jeppeto/anfora.png",
          "jeppeto/agave.png", "jeppeto/moita.png", "jeppeto/palmeira.png"]
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
-STUDIO = "https://activufrj.nce.ufrj.br/studio/EICA/%s?disp=inline&size=N"
+STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
 MENU_PROP = ['apagar', 'configurar', 'pular']
 MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular']
@@ -43,25 +40,44 @@ class Builder:
     """ Builder creating model elements and rendering with gui components. :ref:`builder`
     """
     def __init__(self, gui, model):
-        self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
+        self.doc, self.json, self.html = gui.DOC, gui.JSON, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.model = model
+        self.props, self.scenes = EICAP, EICA
+
+    def process_arguments(self, gui):
+        def set_prop(value):
+            print('set_prop', value)
+            self.props = self.json.loads(value)['results']
+
+        def set_scene(value):
+            self.scene = self.json.loads(value)['results']
+
         args = self.win.location.search
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
-            print(self.args)
-
-    def _on_sent(self, req):
-        if req.status == 200 or req.status == 0:
-            self.doc["result"].html = req.text
+            if 'game' in self.args:
+                gui.start_a_game()
+            else:
+                gui.show_front_menu()
+            props = self.args.setdefault('props', 'jeppeto')
+            scenes = self.args.setdefault('scenes', 'EICA')
+            self.send(STUDIO % (props, 1), record=set_prop, method="GET")
+            self.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
+            print(self.args, props, STUDIO % (props, 1))
         else:
-            self.doc["result"].html = "error "+req.text
+            gui.show_front_menu()
 
-    def send(self, data, url):
+    def send(self, url, record=lambda x: '', data='', method="POST"):
+        def _on_sent(req):
+            if req.status == 200 or req.status == 0 and req.text:
+                record(req.text)
+            else:
+                self.error = "error "+req.text
         req = self.ajax()
-        #req.on_complete = on_complete
+        req.on_complete = _on_sent
         #req.set_timeout(timeout,err_msg)
-        req.open('POST', url, True)
+        req.open(method, url, True)
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
@@ -70,11 +86,11 @@ class Builder:
 
     def build_menus(self):
         self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
-        self.gui.doc.oncontextmenu = self.rmenu.contextmenu
-        self.pmenu = Menu(self.gui, 'ad_objeto', menu=EICAP, prefix=MENUITEM, command='')
-        self.smenu = Menu(self.gui, 'ad_cenario', menu=EICA, prefix=MENUITEM, command='')
-        self.nmenu = Menu(self.gui, 'navegar', menu=EICA, prefix=MENUITEM, command='')
-        self.umenu = Menu(self.gui, 'pular', menu=EICA, prefix=MENUITEM, command='')
+        self.gui.doc.oncontextmenu = self.gui.screen_context
+        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='')
+        self.smenu = Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
+        self.nmenu = Menu(self.gui, 'navegar', menu=self.scenes, prefix=MENUITEM, command='')
+        self.umenu = Menu(self.gui, 'pular', menu=self.scenes, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
         self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_BALAO, activate=True)
         self.wenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
@@ -82,6 +98,7 @@ class Builder:
     def build_all(self, gui):
         self.gui = gui
         self.gui.control = self.model
+        self.process_arguments(gui)
         self.build_deploy(DEFAULT)
         self.build_menus()
         print(self.model.items)
@@ -135,18 +152,6 @@ class Menu(object):
         #print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
         self.activate(self.command + item, event, obj)
 
-    def contextmenu(self, ev):
-        if True:  # ev.button == 2:
-            ev.stopPropagation()
-            ev.preventDefault()
-            #print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
-            self.menu.style.display = 'block'
-            self.gui.current_menu = self.menu
-            self.menu.style.left = self.gui.menuX = ev.clientX + self.gui.win.pageXOffset
-            self.menu.style.top = self.gui.menuY = ev.clientY + self.gui.win.pageYOffset
-            self.gui.context_obj_id = ev.target.id[2:]
-            return False
-
     def make_id(self, targ_id):
         oid = Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
         return ("o%d_" % oid) + targ_id
@@ -156,6 +161,7 @@ class Menu(object):
         getattr(self, command)(ev, menu)
 
     def menu_ad(self, ev, menu):
+        ev.preventDefault()
         menu = menu.menu
         menu.style.display = 'block'
         self.gui.current_menu = menu
@@ -176,7 +182,7 @@ class Menu(object):
         prop = self.gui.doc[self.gui.obj_id]
         kwargs = dict(
             o_emp=self.gui.shape, o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
-            s_left=prop.offsetLeft, s_top=prop.offsetTop)
+            s_left=prop.offsetLeft, s_top=prop.offsetTop, o_text=prop.html)
         self._editar(ev, prop, kwargs)
 
     def _editar(self, ev, prop, kwargs):
@@ -184,28 +190,42 @@ class Menu(object):
         prop_size = self.gui.doc["propsize"]
         prop_size.style.backgroundColor = 'green'
         prop.style.backgroundColor = 'white'
+        self.gui.action = lambda no: None
+        self.gui.contextmenu = lambda x, y: None
 
         def _dropend(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
 
-            prop_size.style.backgroundColor = 'black'
-            ev.preventDefault()
-            ev.stopPropagation()
             kwargs.update(o_text=prop.html)
             print('_dropend', kwargs)
             self.gui.save(kwargs)
+            kwargs.update(o_cmd="DoShape", o_emp=self.gui.shape, o_gcomp='shape')
             self.gui.control.activate(**kwargs)
+            _drop_final(ev)
+
+        def _drop_final(ev):
+            ev.preventDefault()
+            ev.stopPropagation()
+            prop.html = kwargs['o_text']
+            prop_size.style.backgroundColor = 'black'
+            prop_size.unbind('click')
             prop.style.backgroundColor = 'transparent'
             prop_box.style.left = -90000
             prop_size.style.left = -90000
             prop.contentEditable = "false"
+            self.gui.action = self.gui._action
+            self.gui.contextmenu = self.gui._contextmenu
+            self.gui.revoke_action = lambda x=0: None
 
-        x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
+        self.gui.revoke_action = _drop_final
+        x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 20
         pboxs, psizes = prop_box.style, prop_size.style
+        prop_size.unbind('click')
         prop_size.bind('click', _dropend)
-        psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
+        psizes.left, psizes.top, psizes.width, psizes.height = x+w-10, y+h-10, s, s
         self.gui.book <= prop_size
         prop.contentEditable = "true"
+        prop.onclick = lambda ev: ev.stopPropagation()
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
@@ -323,6 +343,7 @@ class Menu(object):
                 kwargs.update(o_cmd="DoAdd", o_emp=self.gui.text)
                 print("menu_balao prop", kwargs)
                 prop = self.gui.div('OOOOOO', **kwargs)
+                prop.oncontextmenu = self.gui.text_context
                 self._editar(ev, prop, kwargs)
                 #prop.oncontextmenu = self.gui.text_context  # gui.sel_prop
                 #t.text = 'Lorem Ipsum'
@@ -422,6 +443,21 @@ class Gui(GuiDraw):
         self.book = self.doc["book"]
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
         self.rubber_start = self.build_rubberband()
+        self.deliverables = dict(
+            div=self.div, iframe=self.iframe, sprite=self.sprite, text=self.text,
+            drag=self.build_drag, drop=self.build_drop, shape=self.shape,
+            up=self.up,  delete=self.delete, act=self.act)
+        self.doc.onclick = self.revoke_menu
+        self.action = self._action
+        self.contextmenu = self._contextmenu
+        self.revoke_action = lambda x=0: None
+
+    def start_a_game(self, game):
+        print('start a game')
+        pass
+
+    def show_front_menu(self):
+        print('show_front_menu')
         self.start_div = self.div(self.book)
         self.lst = self.div(self.start_div, s_position='absolute', s_left=220,
                             s_top=510, s_width=300, s_display='none')
@@ -430,37 +466,38 @@ class Gui(GuiDraw):
             s_position='absolute', s_left=0)
         self.img(self.start_div, o_Id=LGM, s_left=120, **KWA).onclick = self.start
         self.img(self.start_div, o_Id=NGM, s_left=530, **KWA).onclick = self.start
-        self.deliverables = dict(
-            div=self.div, iframe=self.iframe, sprite=self.sprite, text=self.text,
-            drag=self.build_drag, drop=self.build_drop, shape=self.shape,
-            up=self.up,  delete=self.delete, act=self.act)
-        self.doc.onclick = self.revoke_menu
 
     def revoke_menu(self, ev):
         ev.stopPropagation()
         ev.preventDefault()
-        if self.current_menu:
+        self.revoke_action(ev)
+        print('revoke_menu', self.current_menu, ev.button)
+        if self.current_menu and ev.button == 0:
+            print('revoke_menu', self.current_menu.Id)
             self.current_menu.style.display = 'none'
 
-    def object_context(self, ev):
+    def screen_context(self, ev):
+        self.contextmenu(ev, Menu.MENU['__ROOT__'].menu)
+
+    def _contextmenu(self, ev, menu):
         ev.stopPropagation()
         ev.preventDefault()
-        self.obj_id = ev.target.id
-        menu = self.current_menu = Menu.MENU['ob_ctx'].menu
+        self.current_menu = menu
+        #print('self menu:', self.menu, self.gui.win.pageXOffset, self.gui.win.pageYOffset)
         menu.style.display = 'block'
         menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
         menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
+        self.context_obj_id = ev.target.id[2:]
+        self.obj_id = ev.target.id
+        return False
+
+    def object_context(self, ev):
+        self.contextmenu(ev, Menu.MENU['ob_ctx'].menu)
 
     def text_context(self, ev):
-        ev.stopPropagation()
-        ev.preventDefault()
-        self.obj_id = ev.target.id
-        menu = self.current_menu = Menu.MENU['tx_ctx'].menu
-        menu.style.display = 'block'
-        menu.style.left = self.menuX = ev.clientX + self.win.pageXOffset
-        menu.style.top = self.menuY = ev.clientY + self.win.pageYOffset
+        self.contextmenu(ev, Menu.MENU['tx_ctx'].menu)
 
-    def action(self, event):
+    def _action(self, event):
         self.control.activate(o_emp=self.employ, o_Id=event.target.id, o_cmd='DoExecute')
 
     def text(self, cmd=None, **kwargs):
@@ -555,10 +592,10 @@ class Gui(GuiDraw):
         prop_box = self.doc["propbox"]
         prop_size = self.doc["propsize"]
         prop_place = prop.parentNode
+        self.contextmenu = lambda x, y: None
+        self.action = lambda x: None
 
         def dragstart(ev):
-            prop_box.unbind('dragstart', dragstart)
-            prop_size.unbind('dragstart', sizestart)
             self.book.bind('drop', dropmove)
             _start(ev)
 
@@ -567,30 +604,45 @@ class Gui(GuiDraw):
             _start(ev)
 
         def _start(ev):
+            prop_box.unbind('dragstart', dragstart)
+            prop_size.unbind('dragstart', sizestart)
             self.offx = ev.x - self.book.offsetLeft - prop_box.offsetLeft
             self.offy = ev.y - self.book.offsetTop - prop_box.offsetTop
+            self.goX, self.goY = pboxs.left, pboxs.top
             #print(ev, ev.data, ev.target.id, self.offx, self.offy)
             ev.data['text'] = ev.target.id
             ev.stopPropagation()
             # permitir que o objeto arrastado seja movido
             ev.data.effectAllowed = 'move'
+            self.revoke_action = lambda x=0: None
 
         def dropmove(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
+            self.goX, self.goY = ev.x-offx-self.offx, ev.y-offy-self.offy
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
                 s_left=ev.x-offx-self.offx, s_top=ev.y-offy-self.offy)
             _dropend(ev, kwargs)
 
         def _dropend(ev, kwargs):
-            prop_place <= prop
-            ev.preventDefault()
-            ev.stopPropagation()
-            self.book.unbind('drop')
+            print('_dropend')
             self.save(kwargs)
             self.control.activate(self.shape, **kwargs)
+            self.book.unbind('drop')
+            _drop_final(ev)
+
+        def _drop_final(ev):
+            ev.preventDefault()
+            ev.stopPropagation()
+            self.book.unbind('dragover')
+            prop_box.unbind('dragstart', dragstart)
+            prop_size.unbind('dragstart', sizestart)
+            prop_place <= prop
+            prop.style.left, prop.style.top = self.goX, self.goY
             prop_box.style.left = -90000
             prop_size.style.left = -90000
+            self.contextmenu = self._contextmenu
+            self.action = self._action
 
         def dropsize(ev):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
@@ -607,6 +659,7 @@ class Gui(GuiDraw):
             #print(ev, ev.x, ev.y)
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
+        self.revoke_action = _drop_final
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
         #print ('GUi.sel_prop', ev.target.id, x, y, w, h)
         #prop.unbind('click')
