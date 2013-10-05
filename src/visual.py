@@ -19,6 +19,8 @@ TIMEOUT = 5  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
 MENUPX = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
+EXTRA = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s"
+MARKER = "extra/marcador.png"
 MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
 EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
@@ -87,7 +89,7 @@ class Builder:
     def build_menus(self):
         self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
         self.gui.doc.oncontextmenu = self.gui.screen_context
-        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='')
+        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
         self.smenu = Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=self.scenes, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=self.scenes, prefix=MENUITEM, command='')
@@ -110,15 +112,15 @@ class Menu(object):
     """
     MENU = {}
 
-    def __init__(self, gui, originator, menu=None,
-                 command='menu_', prefix=MENUPX, event="click", activate=False):
+    def __init__(self, gui, originator, menu=None, command='menu_',
+                 prefix=MENUPX, event="click", activate=False, extra=[]):
         self.gui, self.item, self.prefix = gui, originator, prefix
         self.command, self.prefix, self.activated = command, prefix, activate
         self.originator = originator
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         self.menu_wiki = self.menu_ad
-        menu and self.build_menu(menu)
+        menu and self.build_menu(menu, extra=extra)
 
     def build_item(self, item, source, menu):
         #print('build_item', self.prefix, item, menu, menu.menu)
@@ -131,13 +133,14 @@ class Menu(object):
             Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
 
-    def build_menu(self, menu=MENU_DEFAULT, display="none"):
+    def build_menu(self, menu=MENU_DEFAULT, display="none", extra=[]):
         #print ("build_menu:", self.gui.div)
         Menu.MENU[self.originator] = self
         self.menu = self.gui.div(
             self.gui.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0', o_Id=self.item)
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.build_item(item, EXTRA % item, self) for item in extra]
         [self.build_item(item, self.prefix % item, self) for item in menu]
         return self.menu
 
@@ -149,7 +152,7 @@ class Menu(object):
         item = menu_id in Menu.MENU and menu_id or self.item
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
-        #print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
+        print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
         self.activate(self.command + item, event, obj)
 
     def make_id(self, targ_id):
@@ -312,9 +315,10 @@ class Menu(object):
                 print('ad_objeto place rejected:', o_place, kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
         oid = self.make_id(tid)
+        img_source = 'extra/' in tid and EXTRA % tid or SCENE % tid
         kwargs = dict(
             o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="sprite",
-            o_item=tid, o_src=SCENE % tid, o_Id=oid,
+            o_item=tid, o_src=img_source, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid)
         self.gui.control.activate(**kwargs)
