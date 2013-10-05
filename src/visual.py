@@ -649,20 +649,24 @@ class Gui(GuiDraw):
             self.action = self._action
 
         def dropsize(ev):
-            offx, offy = self.book.offsetLeft, self.book.offsetTop
-            cx = prop_box.offsetLeft + prop_box.offsetWidth // 2
-            cy = prop_box.offsetTop + prop_box.offsetHeight // 2
-            w, h = abs(ev.x - offx - cx), abs(ev.y - offy - cy)
-            x, y = cx - w, cy - h
+            x, y = prop_box.offsetLeft, prop_box.offsetTop
+            w, h = _dragover(ev)
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
-                s_left=x, s_top=y, s_width=2*w, s_height=2*h)
+                s_left=x, s_top=y, s_width=w, s_height=h)
             _dropend(ev, kwargs)
 
         def dragover(ev):
-            #print(ev, ev.x, ev.y)
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
+            w, h = _dragover(ev)
+
+        def _dragover(ev):
+            offx, offy = self.book.offsetLeft, self.book.offsetTop
+            w, h = ev.x - prop_box.offsetLeft - offx, ev.y - prop_box.offsetTop - offy
+            prop_box.style.width = prop.style.width = w
+            prop_box.style.height = prop.style.height = h
+            return w, h
         self.revoke_action = _drop_final
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
         #print ('GUi.sel_prop', ev.target.id, x, y, w, h)
@@ -672,7 +676,7 @@ class Gui(GuiDraw):
         pboxs.left, pboxs.top, pboxs.width, prop_box.style.height = x, y, w, h
         self.book <= prop_box
         prop_size.bind('dragstart', sizestart)
-        psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
+        psizes.left, psizes.top, psizes.width, psizes.height = w+x-5, h+y-5, s, s
         self.book <= prop_size
         self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
