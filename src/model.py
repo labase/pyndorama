@@ -32,6 +32,7 @@ class Thing:
     def create(self, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
         #print ("create:", fab, part, o_Id, kwargs, self)
+        self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         self.o_Id = o_Id or len(Thing.ALL_THINGS)
         self.o_part = part
         (fab or self).register(o_Id or 13081299999999, self)
@@ -88,6 +89,7 @@ class Thing:
         deleted.deploy(employ)
         oid = deleted.o_placeid if hasattr(deleted, "o_placeid") else deleted.o_place.Id
         Thing.ALL_THINGS[oid].remove(deleted)
+        del Thing.ALL_THINGS[o_Id]
         return self.current
 
     def up(self, o_Id):
@@ -95,11 +97,11 @@ class Thing:
         self.current = Thing.ALL_THINGS[o_Id]
         return self.current
 
-    def list(self, employ=None, **kwargs):
+    def list(self, employ=None, kind='Locus', **kwargs):
         """List member. """
         [employ(**{argument: getattr(item, argument)
                    for argument in dir(item) if argument[:2] in "o_ s_"})
-         for item in self.items]
+         for item in Thing.ALL_THINGS.values() if item.o_part == kind]
 
     def visit(self, visiting):
         """Visit across the structure. """
@@ -284,9 +286,11 @@ class DoUp(Command):
 class DoShape(Command):
     """Shape current element."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
-        """Delete current element."""
+        """Reshape current element."""
         #print('DoShape:', o_Id, employ)
+        kwargs.update(o_gcomp='shape')
         element = fab.shape(o_Id, **kwargs)
+        element.o_gcomp = 'shape'
         element.deploy(employ)
 
 
@@ -300,9 +304,9 @@ class DoDel(Command):
 
 class DoList(Command):
     """List elements from another element."""
-    def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
+    def execute(self, employ, fab=None, part=None, o_Id=None, o_kind=None, **kwargs):
         """Ask fabric to list all."""
-        fab.list(employ)
+        fab.list(employ, o_kind)
 
 
 def init():

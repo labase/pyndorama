@@ -19,6 +19,8 @@ TIMEOUT = 5  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
 MENUPX = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
+EXTRA = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s"
+MARKER = "extra/marcador.png"
 MENULIST = ACTIV + '/rest/studio/%s?type=%d'
 MENUITEM = ACTIV + '/rest/studio/%s?size=N'
 EICA = ["EICA/1_1c.jpg", "EICA/1_2c.jpg", "EICA/2_1c.jpg",
@@ -29,8 +31,8 @@ E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
-MENU_PROP = ['apagar', 'configurar', 'pular']
-MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular']
+MENU_PROP = ['apagar', 'configurar', 'pular', 'esconder', 'mostrar']
+MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular', 'esconder', 'mostrar']
 MENU_TEXT = ['balao']
 DEFAULT = [
 ]
@@ -56,15 +58,15 @@ class Builder:
         args = self.win.location.search
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
-            if 'game' in self.args:
-                gui.start_a_game()
-            else:
-                gui.show_front_menu()
             props = self.args.setdefault('props', 'jeppeto')
             scenes = self.args.setdefault('scenes', 'EICA')
             self.send(STUDIO % (props, 1), record=set_prop, method="GET")
             self.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
             print(self.args, props, STUDIO % (props, 1))
+            if 'game' in self.args:
+                gui.start_a_game(self.args['game'])
+            else:
+                gui.show_front_menu()
         else:
             gui.show_front_menu()
 
@@ -87,10 +89,11 @@ class Builder:
     def build_menus(self):
         self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
         self.gui.doc.oncontextmenu = self.gui.screen_context
-        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='')
+        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
         self.smenu = Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=self.scenes, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=self.scenes, prefix=MENUITEM, command='')
+        self.mmenu = Menu(self.gui, 'mostrar', menu=self.scenes, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
         self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_BALAO, activate=True)
         self.wenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
@@ -110,15 +113,15 @@ class Menu(object):
     """
     MENU = {}
 
-    def __init__(self, gui, originator, menu=None,
-                 command='menu_', prefix=MENUPX, event="click", activate=False):
+    def __init__(self, gui, originator, menu=None, command='menu_',
+                 prefix=MENUPX, event="click", activate=False, extra=[]):
         self.gui, self.item, self.prefix = gui, originator, prefix
         self.command, self.prefix, self.activated = command, prefix, activate
         self.originator = originator
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         self.menu_wiki = self.menu_ad
-        menu and self.build_menu(menu)
+        menu and self.build_menu(menu, extra=extra)
 
     def build_item(self, item, source, menu):
         #print('build_item', self.prefix, item, menu, menu.menu)
@@ -131,13 +134,14 @@ class Menu(object):
             Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
 
-    def build_menu(self, menu=MENU_DEFAULT, display="none"):
+    def build_menu(self, menu=MENU_DEFAULT, display="none", extra=[]):
         #print ("build_menu:", self.gui.div)
         Menu.MENU[self.originator] = self
         self.menu = self.gui.div(
             self.gui.doc, s_position='absolute', s_top='50%', s_left='50%',
             s_display=display, s_border='1px solid #d0d0d0', o_Id=self.item)
         #print ('build_menu', [self.comm[kwargs['o_click']] for kwargs in menu])
+        [self.build_item(item, EXTRA % item, self) for item in extra]
         [self.build_item(item, self.prefix % item, self) for item in menu]
         return self.menu
 
@@ -149,7 +153,7 @@ class Menu(object):
         item = menu_id in Menu.MENU and menu_id or self.item
         obj = menu_id in Menu.MENU and Menu.MENU[menu_id] or self
         #self.activate(self.command or self.item, event, obj)
-        #print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
+        print('click:', menu_id, self.command + item, self.menu.Id, self.prefix)  # , self.item, item)
         self.activate(self.command + item, event, obj)
 
     def make_id(self, targ_id):
@@ -227,6 +231,15 @@ class Menu(object):
         prop.contentEditable = "true"
         prop.onclick = lambda ev: ev.stopPropagation()
 
+    def menu_esconder(self, ev, menu):
+        def delete(o_item, o_Id, **kwargs):
+            #print('thumb', self.prefix, kwargs)
+            self.gui.doc[o_Id].style.opacity = '0.1'
+            kwargs.update(o_cmd='DoShape', o_Id=o_Id, o_gcomp='shape', s_opacity='0.1')
+            self.gui.save(kwargs)
+        self.gui.control.activate(
+            o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoShape')
+
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
@@ -237,28 +250,24 @@ class Menu(object):
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
 
     def menu_pular(self, ev, menu):
-        def thumb(o_item, o_Id, **kwargs):
-            #print('thumb', self.prefix, kwargs)
-            self.activated = False
-            self.build_item(o_Id, MENUITEM % o_item, menu)
-        pane = menu.menu
-        while (pane.hasChildNodes()):
-            pane.removeChild(pane.lastChild)
-        self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
-        pane.style.display = 'block'
-        self.gui.current_menu = pane
-        pane.style.left = self.gui.menuX
-        pane.style.top = self.gui.menuY
+        self._sub_menu(ev, menu)
+
+    def menu_mostrar(self, ev, menu):
+        self._sub_menu(ev, menu, kind='Holder')
 
     def menu_navegar(self, ev, menu):
+        self._sub_menu(ev, menu)
+
+    def _sub_menu(self, ev, menu, kind='Locus', activated=False, command='DoList'):
         def thumb(o_item, o_Id, **kwargs):
-            #print('thumb', self.prefix, kwargs)
-            #item = '/'.join(o_src[:-7].split('/')[:-2])
-            self.build_item(o_Id, MENUITEM % o_item, menu)
+            self.activated = activated
+            item = (MENUITEM % o_item) if o_item[:5] not in 'extra/balao' else EXTRA % MARKER
+            print ('_sub_menuthumb', o_item, item, o_item[:5])
+            self.build_item(o_Id, item, menu)
         pane = menu.menu
         while (pane.hasChildNodes()):
             pane.removeChild(pane.lastChild)
-        self.gui.control.activate(o_emp=thumb, o_cmd='DoList')
+        self.gui.control.activate(o_emp=thumb, o_cmd=command, o_kind=kind)
         pane.style.display = 'block'
         self.gui.current_menu = pane
         pane.style.left = self.gui.menuX
@@ -266,18 +275,24 @@ class Menu(object):
 
     def navegar(self, ev, menu):
         def up(o_Id, **kwargs):
-            #print('up', self.prefix, o_Id)
-            #item = '/'.join(o_src[:-7].split('/')[:-2])
             self.gui._locate(self.book, self.gui.doc[o_Id])
         kwargs = dict(
             o_emp=up, o_cmd="DoUp", o_part="Locus", o_Id=ev.target.id[2:]
         )
         self.gui.control.activate(**kwargs)
 
-    def pular(self, ev, menu):
-        def jump(o_Id, **kwargs):
-            self.gui.doc[o_Id].onclick = self.gui.action
+    def mostrar(self, ev, menu):
+        menu_id = ev.target.id[2:]
+        oid = self.make_id(menu_id)
+        kwargs = dict(
+            o_emp=self.gui.act, o_cmd="DoAdd", o_part="Action", o_Id=oid,
+            o_gcomp='act', o_act='DoShape', o_acomp='shape', s_opacity='1.0',
+            o_item=menu_id, o_placeid=self.gui.obj_id
+        )
+        self.gui.control.activate(**kwargs)
+        self.gui.save(kwargs)
 
+    def pular(self, ev, menu):
         menu_id = ev.target.id[2:]
         oid = self.make_id(menu_id)
         kwargs = dict(
@@ -312,9 +327,10 @@ class Menu(object):
                 print('ad_objeto place rejected:', o_place, kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, ev.target.id[2:]
         oid = self.make_id(tid)
+        img_source = 'extra/' in tid and EXTRA % tid or SCENE % tid
         kwargs = dict(
             o_emp=prop, o_cmd="DoAdd", o_part="Holder", o_gcomp="sprite",
-            o_item=tid, o_src=SCENE % tid, o_Id=oid,
+            o_item=tid, o_src=img_source, o_Id=oid,
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid)
         self.gui.control.activate(**kwargs)
@@ -345,9 +361,6 @@ class Menu(object):
                 prop = self.gui.div('OOOOOO', **kwargs)
                 prop.oncontextmenu = self.gui.text_context
                 self._editar(ev, prop, kwargs)
-                #prop.oncontextmenu = self.gui.text_context  # gui.sel_prop
-                #t.text = 'Lorem Ipsum'
-                #self.gui.save(kwargs)
             except Exception:
                 print('text baloon rejected:', kwargs)
         offx, offy, tid = self.book.offsetLeft, self.book.offsetTop, 'balao'
@@ -358,12 +371,6 @@ class Menu(object):
             s_position='absolute', s_float='left', s_top=self.gui.menuY-offy,
             s_left=self.gui.menuX-offx, o_title=tid, o_text="Lorem Ipsum")
         self.gui.control.activate(**kwargs)
-        #prop = self.gui.div(**kwargs)
-        #prop = self.gui.doc[self.gui.obj_id]
-        #kwargs = dict(
-        #    o_emp=self.gui.shape, o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
-        #    s_left=prop.offsetLeft, s_top=prop.offsetTop)
-        pass
 
 
 class GuiDraw(object):
@@ -397,12 +404,15 @@ class GuiDraw(object):
 
     def shape(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         shaper = self.doc[o_Id].style
-        shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
-        print('shape', o_Id, shaper, shaper.left, kwargs)
+        if ('s_left' in kwargs) and ('s_top' in kwargs):
+            shaper.left, shaper.top = kwargs['s_left'], kwargs['s_top']
+        #print('shape', o_Id, shaper, shaper.left, kwargs)
         if ('s_width' in kwargs) or ('s_height' in kwargs):
             shaper.width, shaper.height = kwargs['s_width'], kwargs['s_height']
         if 'o_text' in kwargs:
             self.doc[o_Id].html = kwargs['o_text']
+        if 's_opacity' in kwargs:
+            shaper.opacity = kwargs['s_opacity']
 
     def delete(self, o_place=None, o_Id=None, o_Class='deafault', **kwargs):
         print('delete', kwargs)
@@ -454,6 +464,7 @@ class Gui(GuiDraw):
 
     def start_a_game(self, game):
         print('start a game')
+        self.load(game)
         pass
 
     def show_front_menu(self):
@@ -471,9 +482,9 @@ class Gui(GuiDraw):
         ev.stopPropagation()
         ev.preventDefault()
         self.revoke_action(ev)
-        print('revoke_menu', self.current_menu, ev.button)
+        #print('revoke_menu', self.current_menu, ev.button)
         if self.current_menu and ev.button == 0:
-            print('revoke_menu', self.current_menu.Id)
+            #print('revoke_menu', self.current_menu.Id)
             self.current_menu.style.display = 'none'
 
     def screen_context(self, ev):
@@ -597,10 +608,12 @@ class Gui(GuiDraw):
 
         def dragstart(ev):
             self.book.bind('drop', dropmove)
+            self.book.bind('dragover', moveover)
             _start(ev)
 
         def sizestart(ev):
             self.book.bind('drop', dropsize)
+            self.book.bind('dragover', dragover)
             _start(ev)
 
         def _start(ev):
@@ -645,20 +658,28 @@ class Gui(GuiDraw):
             self.action = self._action
 
         def dropsize(ev):
-            offx, offy = self.book.offsetLeft, self.book.offsetTop
-            cx = prop_box.offsetLeft + prop_box.offsetWidth // 2
-            cy = prop_box.offsetTop + prop_box.offsetHeight // 2
-            w, h = abs(ev.x - offx - cx), abs(ev.y - offy - cy)
-            x, y = cx - w, cy - h
+            x, y = prop_box.offsetLeft, prop_box.offsetTop
+            w, h = _dragover(ev)
             kwargs = dict(
                 o_cmd='DoShape', o_Id=prop.id, o_gcomp='shape',
-                s_left=x, s_top=y, s_width=2*w, s_height=2*h)
+                s_left=x, s_top=y, s_width=w, s_height=h)
             _dropend(ev, kwargs)
 
-        def dragover(ev):
-            #print(ev, ev.x, ev.y)
+        def moveover(ev):
             ev.data.effectAllowed = 'move'
             ev.preventDefault()
+
+        def dragover(ev):
+            ev.data.effectAllowed = 'move'
+            ev.preventDefault()
+            w, h = _dragover(ev)
+
+        def _dragover(ev):
+            offx, offy = self.book.offsetLeft, self.book.offsetTop
+            w, h = ev.x - prop_box.offsetLeft - offx, ev.y - prop_box.offsetTop - offy
+            prop_box.style.width = prop.style.width = w
+            prop_box.style.height = prop.style.height = h
+            return w, h
         self.revoke_action = _drop_final
         x, y, w, h, s = prop.offsetLeft, prop.offsetTop, prop.offsetWidth, prop.offsetHeight, 10
         #print ('GUi.sel_prop', ev.target.id, x, y, w, h)
@@ -668,9 +689,8 @@ class Gui(GuiDraw):
         pboxs.left, pboxs.top, pboxs.width, prop_box.style.height = x, y, w, h
         self.book <= prop_box
         prop_size.bind('dragstart', sizestart)
-        psizes.left, psizes.top, psizes.width, psizes.height = x-5, y-5, s, s
+        psizes.left, psizes.top, psizes.width, psizes.height = w+x-5, h+y-5, s, s
         self.book <= prop_size
-        self.book.bind('dragover', dragover)
         prop.style.left, prop.style.top = 0, 0
         prop_box <= prop
 
