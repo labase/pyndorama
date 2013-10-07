@@ -58,15 +58,15 @@ class Builder:
         args = self.win.location.search
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
-            if 'game' in self.args:
-                gui.start_a_game()
-            else:
-                gui.show_front_menu()
             props = self.args.setdefault('props', 'jeppeto')
             scenes = self.args.setdefault('scenes', 'EICA')
             self.send(STUDIO % (props, 1), record=set_prop, method="GET")
             self.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
             print(self.args, props, STUDIO % (props, 1))
+            if 'game' in self.args:
+                gui.start_a_game(self.args['game'])
+            else:
+                gui.show_front_menu()
         else:
             gui.show_front_menu()
 
@@ -464,6 +464,7 @@ class Gui(GuiDraw):
 
     def start_a_game(self, game):
         print('start a game')
+        self.load(game)
         pass
 
     def show_front_menu(self):

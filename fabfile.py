@@ -16,13 +16,18 @@ from BeautifulSoup import BeautifulSoup as soup
 from fabric.api import local  # , settings, cd, run, lcd
 from base64 import b64decode as b6d
 import mechanize as mcz
+import cookielib
+import urllib
 #from tempfile import mkdtemp
 KG_ORIGIN = '/home/carlo/Documentos/dev/pyndorama'
 KG_DEST = '/home/carlo/Dropbox/Public/labase/pyndorama'
 SOURCES = '*.py'
-KSOURCES = 'control.py model.py visual.py'
-PARTS = '/src/kwarwp.html /src/dropmeme.html /src/*.py /src/public/image/*.* /brython.js /libs/*.js'.split()
-DESTS = '/src /src /src /src/public/image / /libs'.split()
+STORAGE = 'storage/jeppeto/__code__/'
+FILES = 'file/%sjeppeto'
+FILENAMES = 'index.html control.py model.py visual.py theme.css'.split()
+FILESOURCES = '/src /src /src /src /src/view'.split()
+PARTS = 'index.html *.py theme.css *.jpg'.split()
+DESTS = '/src /src /src/view /src/view/'.split()
 PLAT = 'https://activufrj.nce.ufrj.br/'
 #PLAT = 'http://localhost:8888/'
 
@@ -32,16 +37,21 @@ def __actdep(paswd):
 
 
 def __actinit(mech, paswd):
+    cj = cookielib.LWPCookieJar()
+    mech.set_cookiejar(cj)
     mech.open(PLAT)
     mech.select_form(nr=0)
     mech["user"] = "carlo"
     mech["passwd"] = b6d(paswd)
     results = mech.submit().read()
+    cookies = mech._ua_handlers['_cookies'].cookiejar
     soup(results)
-    print (PLAT+'file/memit/')
+    xsrf = [ck for ck in cookies if ck.name == '_xsrf'][0]
+    print (PLAT+STORAGE, xsrf)
+    return xsrf.value
 
 
-def __actup(mech, filename, folder='file/%smemit', orig='/src/', single=None):
+def __actup(mech, filename, folder=FILES, orig='/src/', single=None):
     avs = mech.open(PLAT+folder % '').read()
     #filename = 'cavalier.py'
     if filename in avs:
@@ -52,12 +62,28 @@ def __actup(mech, filename, folder='file/%smemit', orig='/src/', single=None):
     mech.submit().read()
 
 
+def __actsto(mech, filename, xsrf, folder=STORAGE, orig='/src/', single=None):
+    file_content = open(KG_ORIGIN + orig + (single or filename))
+    data = dict(_xsrf=xsrf, value=file_content)
+    data = urllib.urlencode(data)
+    avs = mech.open(PLAT+STORAGE+filename, data).read()
+    print ('storage result for file %s: ' % filename, avs)
+
+
 def actdep(paswd):
     mech = mcz.Browser()
     __actinit(mech, paswd)
     # filename in 'meme.html memit.py'.split():
     for filename in 'memit.py'.split():
         __actup(mech, filename)
+
+
+def actsto(paswd):
+    mech = mcz.Browser()
+    xsrf = __actinit(mech, paswd.replace('_', '='))
+    # filename in 'meme.html memit.py'.split():
+    for filename, origin in zip(FILENAMES, FILESOURCES):
+        __actsto(mech, filename, xsrf, origin)
 
 
 def ktest():
