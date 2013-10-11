@@ -30,12 +30,15 @@ EICAP = ["jeppeto/bule0.png", "jeppeto/vaso0.png", "jeppeto/anfora.png",
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
-MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar']
+STORAGE = "https://activufrj.nce.ufrj.br/storage/jeppeto/%s/__persist__"
+MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar', 'jeppeto']
 MENU_PROP = ['apagar', 'configurar', 'pular', 'esconder', 'mostrar']
 MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular', 'esconder', 'mostrar']
 MENU_TEXT = ['balao']
 DEFAULT = [
 ]
+MENU_JEPPETO = ['salvar', 'apagar_jogo']
+JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
 
 
 class Builder:
@@ -46,22 +49,31 @@ class Builder:
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.model = model
         self.props, self.scenes = EICAP, EICA
+        self.xsrf = ''
+        if 'xsrf' in doc.cookie:
+            self.xsrf = {key: value for key, value in [cook.split('=')
+                         for cook in self.doc.cookie.split('; ') if 'xsrf' in cook]}['_xsrf']
+            print('xsrf', self._xsrf)
 
     def process_arguments(self, gui):
+        self.pmenu = self.smenu = None
         def set_prop(value):
-            print('set_prop', value)
-            self.props = self.json.loads(value)['results']
+            self.props = self.json.loads(value)['result']
+            self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
+            print('set_prop', self.props)
 
         def set_scene(value):
-            self.scene = self.json.loads(value)['results']
+            self.scene = self.json.loads(value)['result']
+            self.smenu = Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
+            print('set_scene', self.scene)
 
         args = self.win.location.search
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
             props = self.args.setdefault('props', 'jeppeto')
             scenes = self.args.setdefault('scenes', 'EICA')
-            self.send(STUDIO % (props, 1), record=set_prop, method="GET")
-            self.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
+            self.gui.send(STUDIO % (props, 1), record=set_prop, method="GET")
+            self.gui.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
             print(self.args, props, STUDIO % (props, 1))
             if 'game' in self.args:
                 gui.start_a_game(self.args['game'])
@@ -70,39 +82,28 @@ class Builder:
         else:
             gui.show_front_menu()
 
-    def send(self, url, record=lambda x: '', data='', method="POST"):
-        def _on_sent(req):
-            if req.status == 200 or req.status == 0 and req.text:
-                record(req.text)
-            else:
-                self.error = "error "+req.text
-        req = self.ajax()
-        req.on_complete = _on_sent
-        #req.set_timeout(timeout,err_msg)
-        req.open(method, url, True)
-        req.set_header('content-type', 'application/x-www-form-urlencoded')
-        req.send(data)
-
     def build_deploy(self, descriptor):
         [self.model.employ(**description) for description in descriptor]
 
     def build_menus(self):
         self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
         self.gui.doc.oncontextmenu = self.gui.screen_context
-        self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
-        self.smenu = Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
+        self.pmenu = not self.pmenu and Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
+        self.smenu = not self.smenu and Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=self.scenes, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=self.scenes, prefix=MENUITEM, command='')
         self.mmenu = Menu(self.gui, 'mostrar', menu=self.scenes, prefix=MENUITEM, command='')
         self.omenu = Menu(self.gui, 'ob_ctx', menu=MENU_PROP, activate=True)
         self.tenu = Menu(self.gui, 'tx_ctx', menu=MENU_BALAO, activate=True)
+        self.jenu = Menu(self.gui, 'jeppeto', menu=MENU_JEPPETO, activate=True)
         self.wenu = Menu(self.gui, 'wiki', menu=MENU_TEXT, activate=True)
 
     def build_all(self, gui):
         self.gui = gui
         self.gui.control = self.model
-        self.process_arguments(gui)
         self.build_deploy(DEFAULT)
+        self.process_arguments(gui)
+        self.gui.xsrf = self.xsrf
         self.build_menus()
         print(self.model.items)
         self.model.deploy(self.gui.employ)
@@ -120,7 +121,7 @@ class Menu(object):
         self.originator = originator
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
-        self.menu_wiki = self.menu_ad
+        self.menu_wiki = self.menu_jeppeto = self.menu_ad
         menu and self.build_menu(menu, extra=extra)
 
     def build_item(self, item, source, menu):
@@ -249,6 +250,12 @@ class Menu(object):
         self.gui.control.activate(
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
 
+    def menu_apagar_jogo(self, ev, menu):
+        self.gui.storage['_JPT_'+self.gui.game] = self.json.dumps([])
+        games = self.json.loads(self.gui.storage[JEPPETO])
+        games.pop(self.gui.game)
+        self.gui.storage[JEPPETO] = games
+
     def menu_pular(self, ev, menu):
         self._sub_menu(ev, menu)
 
@@ -257,6 +264,20 @@ class Menu(object):
 
     def menu_navegar(self, ev, menu):
         self._sub_menu(ev, menu)
+
+    def menu_salvar(self, ev, menu):
+        value = []
+        
+        def register_value(**kwargs):
+            value.append(kwargs)
+        
+        def receipt(text):
+            print('menu_salva register_value receipt', text)
+        data = dict(_xsrf=self.gui.xsrf, value=[])
+        self.gui.control.deploy(register_value)
+        self.gui.storage['_JPT_'+self.gui.game] = self.json.dumps([])
+        self.gui.send(STORAGE%('_JPT_'+self.gui.game),receipt,data)
+        print('menu_salva register_value', value)
 
     def _sub_menu(self, ev, menu, kind='Locus', activated=False, command='DoList'):
         def thumb(o_item, o_Id, **kwargs):
@@ -434,7 +455,6 @@ class GuiDraw(object):
         return self._locate(o_place, self.html.IMG(
             Id=o_Id, width=o_width, height=o_height, Class=o_Class, alt=o_alt,
             title=o_title, src=o_src, style=self._filter(kwargs)), **kwargs)
-JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
 KWA = dict(s_position='absolute', s_opacity=0.1, s_top=180,
            o_src=MENUPX % 'drawing', o_width=400, o_height=400)
 
@@ -540,6 +560,19 @@ class Gui(GuiDraw):
         #print('save,', cmd)
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
+
+    def send(self, url, record=lambda x: '', data='', method="POST"):
+        def _on_sent(req):
+            if req.status == 200 or req.status == 0 and req.text:
+                record(req.text)
+            else:
+                self.error = "error "+req.text
+        req = self.ajax()
+        req.on_complete = _on_sent
+        #req.set_timeout(timeout,err_msg)
+        req.open(method, url, True)
+        req.set_header('content-type', 'application/x-www-form-urlencoded')
+        req.send(data)
 
     def start(self, ev):
         lst = self.lst

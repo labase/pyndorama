@@ -22,7 +22,7 @@ Pyndorama - Educational game creation
         <style>
         .hidden_display { display :none;}
         </style>
-        <script type="text/javascript" src="https://activufrj.nce.ufrj.br/file/GamesInteligentesII/brython.js"></script>
+        <script type="text/javascript" src="https://dl.dropboxusercontent.com/u/1751704/labase/lib/brython.js"></script>
         <script type="text/python" src="control.py">
         </script>
         <script type="text/python">
@@ -34,6 +34,7 @@ Pyndorama - Educational game creation
             class Brython:
                 DOC, SVG, HTML, AJAX, WIN = doc, svg, html, ajax, win
                 STORAGE, JSON, TIME = storage, json, time
+            print(doc.cookie)
             main(Brython)
         </script>
     </head>
