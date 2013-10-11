@@ -7,15 +7,16 @@ Pyndorama - Visual
 :Contact: carlo@nce.ufrj.br
 :Date: $Date: 2013/09/13 $
 :Status: This is a "work in progress"
-:Revision: $Revision: 0.1.7 $
+:Revision: $Revision: 0.1.8 $
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 
 Visual module with HTML5 factory and declarative builder.
+0.1.8 Load save remote
 """
 ACTIV = "https://activufrj.nce.ufrj.br"
 SCENE = ACTIV + '/rest/studio/%s?size=G'
-TIMEOUT = 5  # seconds
+TIMEOUT = 1  # seconds
 GROUP = 'EICA'
 REPO = "/studio/%s"
 MENUPX = "https://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/%s.png"
@@ -50,13 +51,14 @@ class Builder:
         self.model = model
         self.props, self.scenes = EICAP, EICA
         self.xsrf = ''
-        if 'xsrf' in doc.cookie:
+        if 'xsrf' in self.doc.cookie:
             self.xsrf = {key: value for key, value in [cook.split('=')
                          for cook in self.doc.cookie.split('; ') if 'xsrf' in cook]}['_xsrf']
-            print('xsrf', self._xsrf)
+            print('xsrf', self.xsrf)
 
     def process_arguments(self, gui):
         self.pmenu = self.smenu = None
+
         def set_prop(value):
             self.props = self.json.loads(value)['result']
             self.pmenu = Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
@@ -88,7 +90,8 @@ class Builder:
     def build_menus(self):
         self.rmenu = Menu(self.gui, '__ROOT__', menu=MENU_DEFAULT, event="contextmenu")
         self.gui.doc.oncontextmenu = self.gui.screen_context
-        self.pmenu = not self.pmenu and Menu(self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
+        self.pmenu = not self.pmenu and Menu(
+            self.gui, 'ad_objeto', menu=self.props, prefix=MENUITEM, command='', extra=[MARKER])
         self.smenu = not self.smenu and Menu(self.gui, 'ad_cenario', menu=self.scenes, prefix=MENUITEM, command='')
         self.nmenu = Menu(self.gui, 'navegar', menu=self.scenes, prefix=MENUITEM, command='')
         self.umenu = Menu(self.gui, 'pular', menu=self.scenes, prefix=MENUITEM, command='')
@@ -267,17 +270,18 @@ class Menu(object):
 
     def menu_salvar(self, ev, menu):
         value = []
-        
+
         def register_value(**kwargs):
             value.append(kwargs)
-        
-        def receipt(text):
+
+        def receipt(text, error="error"):
             print('menu_salva register_value receipt', text)
-        data = dict(_xsrf=self.gui.xsrf, value=[])
         self.gui.control.deploy(register_value)
-        self.gui.storage['_JPT_'+self.gui.game] = self.json.dumps([])
-        self.gui.send(STORAGE%('_JPT_'+self.gui.game),receipt,data)
-        print('menu_salva register_value', value)
+        value = self.gui.json.dumps(value)
+        data = dict(_xsrf=self.gui.xsrf, value=value)
+        self.gui.storage['_JPT_'+self.gui.game] = value
+        self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
+        print('menu_salva register_value', data)
 
     def _sub_menu(self, ev, menu, kind='Locus', activated=False, command='DoList'):
         def thumb(o_item, o_Id, **kwargs):
@@ -538,6 +542,24 @@ class Gui(GuiDraw):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def load(self, cmd=None):
+        self.commands = ''
+        game = '_JPT_' + (cmd or self.game)
+
+        def not_read(x=0, text=1):
+            self.commands = self.json.loads(self.storage[game])
+            print('load not read:', x, text, game, self.commands, self.storage[game])
+            for kwargs in self.commands:
+                render(**kwargs)
+
+        def read(text):
+            commands = self.json.loads(text)
+            print('load read:', commands, text)
+            if commands['status'] != '0':
+                return not_read()
+            self.commands = commands['result']
+            for kwargs in self.commands:
+                render(**kwargs)
+
         def render(o_gcomp, **kwargs):
             targ_id = kwargs['o_Id'].split('_')[1]
             if 'o_placeid' in kwargs:
@@ -547,10 +569,7 @@ class Gui(GuiDraw):
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
             self.control.activate(
                 self.deliverables[o_gcomp], **kwargs)
-
-        commands = self.json.loads(self.storage['_JPT_' + (cmd or self.game)])
-        print('load:', self.control, self.storage['_JPT_' + (cmd or self.game)])
-        [render(**kwargs) for kwargs in commands]
+        self.send(STORAGE % game, read, not_read, method="GET")
 
     def save(self, cmd):
         if (not 'o_placeid' in cmd) and 'o_place' in cmd and cmd['o_place']:
@@ -561,15 +580,15 @@ class Gui(GuiDraw):
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
-    def send(self, url, record=lambda x: '', data='', method="POST"):
+    def send(self, url, record=lambda x: '', terr=lambda x: '', data='', method="POST"):
         def _on_sent(req):
             if req.status == 200 or req.status == 0 and req.text:
                 record(req.text)
             else:
-                self.error = "error "+req.text
+                terr("error %d" % req.status, req.text)
         req = self.ajax()
         req.on_complete = _on_sent
-        #req.set_timeout(timeout,err_msg)
+        req.set_timeout(TIMEOUT, terr)
         req.open(method, url, True)
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
