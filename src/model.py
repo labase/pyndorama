@@ -177,9 +177,9 @@ class Locus(Thing):
 
     def _do_create(self):
         """Finish thing creation. """
-        container = Thing.ALL_THINGS.setdefault(self.o_place, THETHING)
+        container = THETHING  # Thing.ALL_THINGS.setdefault(self.o_place, THETHING)
         self.container = container.append(self)
-        #print("""Finish thing creation. """, container, self.o_place, self.container, self)
+        #print("""Finish thing creation. """, THETHING, self.o_place, self.container, self)
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """

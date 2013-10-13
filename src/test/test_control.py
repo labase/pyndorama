@@ -18,20 +18,34 @@ import unittest
 import model
 from visual import Builder
 from visual import Gui
+from mock import MagicMock, ANY
 ITEM = 'it3m'
+
+
+class Matcher:
+    def __init__(self, **matcher):
+        self.matcher = matcher
+
+    def __eq__(self, other):
+        print('matcher', other)
+        return other == self.matcher
 
 
 class TestPyndoramaControl(unittest.TestCase):
 
     def setUp(self):
+
         class Brython:
             def __init__(self):
                 self.DOC, self.SVG, self.HTML, self.AJAX = [self]*4
                 self.doc = self
+                self.cookie = '_xsrf=123456; '
                 self.WIN, self.STORAGE, self.JSON, self.TIME = [self]*4
                 self.__getitem__ = self.DIV = self.div = self.IMG = self.nop
                 self.div = self.img = self.deploy = self.employ = self.nop
-                self.search = ''
+                self.show_front_menu = self.screen_context = self.nop
+                self.menuX = self.menuY = 0
+                self.Id = self.search = ''
                 self.location = self.target = self
                 self.items = self.evs = []
 
@@ -55,7 +69,7 @@ class TestPyndoramaControl(unittest.TestCase):
 
         self.control = model.init()
         self.br = Brython()
-        self.builder = Builder(self.br, self.br)
+        self.builder = Builder(self.br, self.control)
         self.app = Gui(self.br)
         self.builder.build_all(self.br)
         self.gui = _Gui()
@@ -63,18 +77,28 @@ class TestPyndoramaControl(unittest.TestCase):
 
     def _action_load(self):
         """load an action."""
-        self.control.activate(self.gui.employ, place=self.gui, **JEP0["E1"])
-        self.control.activate(self.gui.employ, place=self.gui, **JEP0["JAM"])
+        self.employ = MagicMock()
+        self.control.activate(self.employ, **JEP0["E1"])
+        self.control.activate(self.gui.employ, **JEP0["JAM"])
         self.gui['adm1n'] = {}
-        self.control.activate(self.gui.employ, place=self.gui, **JEP0["JAC"])
+        self.control.activate(self.gui.employ, **JEP0["JAC"])
 
     def test_action_load(self):
         """test load an action."""
         self._action_load()
+        print ('self.control', self.control)
+        self.employ.assert_called_once_with(**L0)
         assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
+        things = {'o1_jeppeto/ampu.png', 'o1_EICA/1_1c.jpg', 'o1_o1_EICA/1_1c.jpg'}
+        assert things <= set(self.control.ALL_THINGS.keys()), self.control.ALL_THINGS.keys()
+        assert len(self.control.items) == 1, 'Not one member in items %s' % self.control.items
+        assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'Not current locus %s' % self.control.current.o_Id
+        register_value = MagicMock()
+        self.control.deploy(register_value)
+        register_value.assert_called_with(**E1)
         pass
 
-    def test_action_baloon(self):
+    def _nest_action_baloon(self):
         """test baloon action."""
         self._action_load()
         self.br.stopPropagation = self.br.preventDefault = self.br.nop
@@ -85,6 +109,8 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.id = 'm_balao'
         self.br.oncontextmenu(self.br)
         self.br.evs[0](self.br)
+        self.control.employ = MagicMock()
+        #self.control.employ.assert_called_once_with(1,2)
         assert self.br.aargs["o_Id"] == "o1_balao", 'no balao in %s' % self.br.aargs
         pass
 
@@ -96,9 +122,29 @@ class TestPyndoramaControl(unittest.TestCase):
         assert self.gui['adm1n']["o_Id"] == "o1_EICA/1_1c.jpg", 'no admin in %s' % self.gui['adm1n']
         assert self.gui['adm1n']["o_gcomp"] == "up", 'no admin in %s' % self.gui['adm1n']
 
+    def test_save_remote(self):
+        """test save remote."""
+        self._action_load()
+        self.br.game = "Jeppeto_0"
+        self.br.json = self.br
+        self.br.dumps = lambda x: str(x)
+        self.br.storage = MagicMock(name='store')
+        self.br.send = MagicMock(name='send')
+        self.builder.jenu.menu_salvar(None, None)
+        value = dict(_xsrf='123456', value='[%s, %s]' % (str(L0), str(E1)))
+        url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
+        self.br.send.assert_called_once_with(url, ANY, ANY, value)
+
 if __name__ == '__main__':
     unittest.main()
-
+L0 = dict(s_top=0, s_left=0, o_gcomp='div',
+          s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
+          s_width=1100, o_placeid='book', o_item='EICA/1_1c.jpg', o_part='Locus', s_height=800,
+          s_position='absolute', s_backgroundSize='100% 100%', o_place=None, o_Id='o1_EICA/1_1c.jpg')
+E1 = dict(s_top=187, s_left=444, s_float='left', o_gcomp='img', o_placeid='o1_EICA/1_1c.jpg',
+          o_item='jeppeto/ampu.png', o_part='Holder', o_place=None, s_position='absolute',
+          o_title='jeppeto/ampu.png', o_src='https: //activufrj.nce.ufrj.br/rest/studio/jeppeto/ampu.png?size=G',
+          o_Id='o1_jeppeto/ampu.png')
 JEP0 = dict(
     E1={
         "o_cmd": "DoAdd", "o_part": "Locus", "o_Id": "o1_EICA/1_1c.jpg",
