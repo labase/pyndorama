@@ -593,6 +593,21 @@ class Gui(GuiDraw):
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
+    def _remote_load(self):
+        self.games = []
+        data = dict(_xsrf=self.xsrf, value=[])
+
+        def receipt(text, error="error"):
+            print('remote load receipt', text)
+
+        def receive_list(text):
+            games = self.json.loads(text)
+            if data['status'] == 0:
+                self.games = games['result']
+            else:
+                self.send(STORAGE % JEPPETO, receipt, receipt, data)
+        self.send(STORAGE % JEPPETO, receipt, receipt, data, 'GET')
+
     def start(self, ev):
         lst = self.lst
 
@@ -607,8 +622,9 @@ class Gui(GuiDraw):
 
         if JEPPETO not in self.storage:
             self.storage[JEPPETO] = self.json.dumps([])
-        games = self.json.loads(self.storage[JEPPETO])
-        #print (games, len(games))
+        self._remote_load()
+        games = self.json.loads(self.storage[JEPPETO]) + self.games
+        print ('start', games, len(games))
         default_name, ask = 'Jeppeto_%d' % len(games), 'Nome do novo jogo'
         if (ev.target.id == 'NEW_GAME') or (len(games) < 1):
             self.game = self.win.prompt(ask, default_name) or default_name

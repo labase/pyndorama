@@ -39,7 +39,7 @@ class Thing:
         self._add_properties(**kwargs)
         self._do_create()
 
-    def activate(self, o_emp=None, o_cmd=None, o_part=None, o_Id=None, o_place=None, **kwargs):
+    def activate(self, o_emp=None, o_cmd="DoAdd", o_part=None, o_Id=None, o_place=None, **kwargs):
         """Activate a given command."""
         try:
             kwargs['o_place'] = o_place

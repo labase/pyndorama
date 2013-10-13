@@ -69,17 +69,17 @@ class TestPyndoramaControl(unittest.TestCase):
 
         self.control = model.init()
         self.br = Brython()
-        self.builder = Builder(self.br, self.control)
         self.app = Gui(self.br)
-        self.builder.build_all(self.br)
+        self.builder = Builder(self.br, self.control)
+        self.builder.build_all(self.app)
         self.gui = _Gui()
         self.gui['adm1n'] = {}
 
     def _action_load(self):
         """load an action."""
         self.employ = MagicMock()
-        self.control.activate(self.employ, **JEP0["E1"])
-        self.control.activate(self.gui.employ, **JEP0["JAM"])
+        self.control.activate(self.employ, **L0)
+        self.control.activate(self.gui.employ, **AM)
         self.gui['adm1n'] = {}
         self.control.activate(self.gui.employ, **JEP0["JAC"])
 
@@ -95,7 +95,7 @@ class TestPyndoramaControl(unittest.TestCase):
         assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'Not current locus %s' % self.control.current.o_Id
         register_value = MagicMock()
         self.control.deploy(register_value)
-        register_value.assert_called_with(**E1)
+        register_value.assert_called_with(**AM)
         pass
 
     def _nest_action_baloon(self):
@@ -125,23 +125,56 @@ class TestPyndoramaControl(unittest.TestCase):
     def test_save_remote(self):
         """test save remote."""
         self._action_load()
-        self.br.game = "Jeppeto_0"
-        self.br.json = self.br
+        self.app.game = "Jeppeto_0"
+        self.app.json = self.br
         self.br.dumps = lambda x: str(x)
-        self.br.storage = MagicMock(name='store')
-        self.br.send = MagicMock(name='send')
+        self.app.storage = MagicMock(name='store')
+        self.app.send = MagicMock(name='send')
         self.builder.jenu.menu_salvar(None, None)
-        value = dict(_xsrf='123456', value='[%s, %s]' % (str(L0), str(E1)))
+        value = dict(_xsrf='123456', value='[%s, %s]' % (str(L0), str(AM)))
         url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
-        self.br.send.assert_called_once_with(url, ANY, ANY, value)
+        self.app.send.assert_called_once_with(url, ANY, ANY, value)
+
+    def test_game_start(self):
+        """test show start screen."""
+        event = MagicMock(name='event')
+        div_eff = MagicMock(name='div_effect')
+        self.br = MagicMock(name='gui')
+        self.br.JSON.loads = lambda x=0: ['a_game']
+        self.app = Gui(self.br)
+        ids = [
+            0, '__ROOT__', 'ad_objeto', 'ad_cenario', 'navegar', 'pular', 'mostrar',
+            'ob_ctx', 'tx_ctx', 'jeppeto', 'wiki', '_JPT_a_game', '_JPT_jpt_0', '_JPT_g'
+        ]
+
+        def side_effect(a, b, c, d, e):
+            assert a == URLJEPPETO, 'but url was %s' % a
+            assert e == "GET"
+            assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
+            self.app.games = ['jpt_0', 'g']
+
+        def div_effect(a=0, b=0, c=0, s_top=0, s_display=0, s_left=0, s_width=0,
+                       s_position=0, s_border=0, o_Id=0, s_color=0, s_fontSize=0,
+                       s_fontFamily=0):
+            assert o_Id in ids, 'but id was %s' % o_Id
+            return div_eff
+        #self.app._remote_load = MagicMock(name='rl', side_effect=side_effect)
+        self.app.send = MagicMock(name='send', side_effect=side_effect)
+        self.app.div = MagicMock(name='div', side_effect=div_effect)
+        self.builder = Builder(self.br, self.control)
+        self.builder.build_all(self.app)
+        self.app.start(event)
+        self.app.send.assert_called_once()
+        self.app.div.assert_called()
 
 if __name__ == '__main__':
     unittest.main()
+URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
 L0 = dict(s_top=0, s_left=0, o_gcomp='div',
           s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
           s_width=1100, o_placeid='book', o_item='EICA/1_1c.jpg', o_part='Locus', s_height=800,
           s_position='absolute', s_backgroundSize='100% 100%', o_place=None, o_Id='o1_EICA/1_1c.jpg')
-E1 = dict(s_top=187, s_left=444, s_float='left', o_gcomp='img', o_placeid='o1_EICA/1_1c.jpg',
+AM = dict(s_top=187, s_left=444, s_float='left', o_gcomp='img', o_placeid='o1_EICA/1_1c.jpg',
           o_item='jeppeto/ampu.png', o_part='Holder', o_place=None, s_position='absolute',
           o_title='jeppeto/ampu.png', o_src='https: //activufrj.nce.ufrj.br/rest/studio/jeppeto/ampu.png?size=G',
           o_Id='o1_jeppeto/ampu.png')
