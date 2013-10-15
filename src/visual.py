@@ -571,6 +571,7 @@ class Gui(GuiDraw):
                 place = self.doc[placeid]
                 kwargs.update(o_place=place)
             Gui.REV[targ_id] = Gui.REV.setdefault(targ_id, 0) + 1
+            kwargs.update(o_gcomp=o_gcomp)
             self.control.activate(
                 self.deliverables[o_gcomp], **kwargs)
         self.send(STORAGE % game, read, not_read, method="GET")
