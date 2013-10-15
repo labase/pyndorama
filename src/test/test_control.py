@@ -19,6 +19,7 @@ import model
 from visual import Builder
 from visual import Gui
 from mock import MagicMock, ANY
+from urllib import urlencode, unquote
 ITEM = 'it3m'
 
 
@@ -83,19 +84,26 @@ class TestPyndoramaControl(unittest.TestCase):
         self.gui['adm1n'] = {}
         self.control.activate(self.gui.employ, **JEP0["JAC"])
 
-    def test_action_load(self):
+    def Nest_action_load(self):
         """test load an action."""
+        COMP = L0
+
+        def eff(cmpr=COMP, **kwargs):
+            assert kwargs == cmpr, 'but action were %s -AND- %s' % (kwargs, cmpr)
+
         self._action_load()
         print ('self.control', self.control)
-        self.employ.assert_called_once_with(**L0)
+        self.employ.side_effect = eff
+        self.employ.assert_called_once()
         assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
         things = {'o1_jeppeto/ampu.png', 'o1_EICA/1_1c.jpg', 'o1_o1_EICA/1_1c.jpg'}
         assert things <= set(self.control.ALL_THINGS.keys()), self.control.ALL_THINGS.keys()
         assert len(self.control.items) == 1, 'Not one member in items %s' % self.control.items
         assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'Not current locus %s' % self.control.current.o_Id
-        register_value = MagicMock()
+        register_value = MagicMock(side_effect=lambda **k: eff(cmpr=AM, **k))
+        COMP = AM
         self.control.deploy(register_value)
-        register_value.assert_called_with(**AM)
+        register_value.assert_called_once()
         pass
 
     def _nest_action_baloon(self):
@@ -124,16 +132,58 @@ class TestPyndoramaControl(unittest.TestCase):
 
     def test_save_remote(self):
         """test save remote."""
+        Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
+        import json
+
+        def store_effect(key, value):
+            assert 'o_gcomp' in value, 'but value was %s' % value
+
+        def send_effect(url, func, funcb, value):
+            assert Url == url, 'but url was %s' % url
+            val = [L0, AM]
+            #value = value.replace('+', ' ')
+            #val = json.dumps(val)
+            #value = json.loads(unquote(value.split('&')[-1].split('=')[-1]))
+            value = json.loads(value['value'])
+            #value = unquote(value.split('&')[-1])
+            #val = urlencode({'value': json.dumps(val)})
+            #data = json.loads(value['value'].replace("'", '"'))
+            assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val[0])
         self._action_load()
         self.app.game = "Jeppeto_0"
         self.app.json = self.br
-        self.br.dumps = lambda x: str(x)
-        self.app.storage = MagicMock(name='store')
-        self.app.send = MagicMock(name='send')
+        self.br.dumps = lambda x: json.dumps(x)
+        self.app.storage = MagicMock(name='store', side_effect=store_effect)
+        self.app.send = MagicMock(name='send', side_effect=send_effect)
         self.builder.jenu.menu_salvar(None, None)
-        value = dict(_xsrf='123456', value='[%s, %s]' % (str(L0), str(AM)))
-        url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
-        self.app.send.assert_called_once_with(url, ANY, ANY, value)
+        self.app.send.assert_called_once()
+        self.app.storage.__setitem__.assert_called_once()
+
+    def test_Menu_cenario(self):
+        """test add a new scene."""
+        Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
+        import json
+
+        def send_effect(url, func, funcb, value):
+            assert Url == url, 'but url was %s' % url
+            val = [L0, AM]
+            value = value.replace('+', ' ')
+            #val = json.dumps(val)
+            value = json.loads(unquote(value.split('&')[-1].split('=')[-1]))
+            #value = unquote(value.split('&')[-1])
+            #val = urlencode({'value': json.dumps(val)})
+            #data = json.loads(value['value'].replace("'", '"'))
+            assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val)
+        self.app.json = self.br
+        self.br.id = 'jeppeto/thing'
+        self.br.dumps = MagicMock(name='dumps')  # lambda x: json.dumps(x)
+        self.br.loads = lambda x: json.loads(x)
+        self.app.game = "jeppeto_0"
+        self.app.storage = MagicMock(name='store')
+        self.app.storage.__getitem__ = MagicMock(name='storeget', return_value="[]")
+        self.builder.jenu.ad_cenario(self.br, None)
+        self.br.dumps.assert_called_once()  # _with(0)
+        assert self.control.items[0].o_gcomp == 'div', 'but items gcomp was %s' % self.control.items[0].o_gcomp
 
     def test_game_start(self):
         """test show start screen."""
@@ -172,10 +222,15 @@ if __name__ == '__main__':
 URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
 L0 = dict(s_top=0, s_left=0, o_gcomp='div',
           s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
-          s_width=1100, o_placeid='book', o_item='EICA/1_1c.jpg', o_part='Locus', s_height=800,
-          s_position='absolute', s_backgroundSize='100% 100%', o_place=None, o_Id='o1_EICA/1_1c.jpg')
+          s_width=1100, o_placeid='book', o_part='Locus', o_item='EICA/1_1c.jpg', s_height=800,
+          s_position='absolute', s_backgroundSize='100% 100%', o_Id='o1_EICA/1_1c.jpg')
+L0 = dict(
+    s_top=0, s_left=0, o_gcomp='div',
+    s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
+    s_width=1100, o_Id='o1_EICA/1_1c.jpg', o_item='EICA/1_1c.jpg', o_part='Locus', s_height=800,
+    s_position='absolute', s_backgroundSize='100% 100%', o_placeid='book')
 AM = dict(s_top=187, s_left=444, s_float='left', o_gcomp='img', o_placeid='o1_EICA/1_1c.jpg',
-          o_item='jeppeto/ampu.png', o_part='Holder', o_place=None, s_position='absolute',
+          o_item='jeppeto/ampu.png', o_part='Holder', s_position='absolute',
           o_title='jeppeto/ampu.png', o_src='https: //activufrj.nce.ufrj.br/rest/studio/jeppeto/ampu.png?size=G',
           o_Id='o1_jeppeto/ampu.png')
 JEP0 = dict(

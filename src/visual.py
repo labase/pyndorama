@@ -272,9 +272,13 @@ class Menu(object):
         value = []
 
         def register_value(**kwargs):
+            if (not 'o_placeid' in kwargs) and 'o_place' in kwargs and kwargs['o_place']:
+                kwargs['o_placeid'] = kwargs.pop('o_place').id
+            elif 'o_place' in kwargs:
+                kwargs.pop('o_place')
             value.append(kwargs)
 
-        def receipt(text, error="error"):
+        def receipt(text=0, error="error"):
             print('menu_salva register_value receipt', text)
         self.gui.control.deploy(register_value)
         value = self.gui.json.dumps(value)
@@ -577,10 +581,11 @@ class Gui(GuiDraw):
         elif 'o_place' in cmd:
             cmd.pop('o_place')
         #print('save,', cmd)
+        'o_emp' in cmd and cmd.pop('o_emp')
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
-    def send(self, url, record=lambda x: '', terr=lambda x: '', data='', method="POST"):
+    def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data='', method="POST"):
         def _on_sent(req):
             if req.status == 200 or req.status == 0 and req.text:
                 record(req.text)
@@ -598,15 +603,17 @@ class Gui(GuiDraw):
         data = dict(_xsrf=self.xsrf, value=[])
 
         def receipt(text, error="error"):
-            print('remote load receipt', text)
+            print('remote load receipt error', text)
 
         def receive_list(text):
             games = self.json.loads(text)
-            if data['status'] == 0:
+            print('remote load receipt', text, games)
+            if games['status'] == 0:
                 self.games = games['result']
             else:
+                print('sending empty game list', text)
                 self.send(STORAGE % JEPPETO, receipt, receipt, data)
-        self.send(STORAGE % JEPPETO, receipt, receipt, data, 'GET')
+        self.send(STORAGE % JEPPETO, receive_list, receipt, data, 'GET')
 
     def start(self, ev):
         lst = self.lst
@@ -826,3 +833,134 @@ class Gui(GuiDraw):
             marginLeft='-150px', marginTop='-100px', padding='10px', s_display='none',
             s_width='2px', s_height='2px', s_border='1px solid #d0d0d0')
         return start
+
+
+always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+               'abcdefghijklmnopqrstuvwxyz'
+               '0123456789' '_.-')
+_safe_map = {}
+quote_array = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14' + \
+    '''\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@ABC''' + \
+    'DEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83' + \
+    '\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97' + \
+    '\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab' + \
+    '\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf' + \
+    '\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3' + \
+    '\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7' + \
+    '\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb' + \
+    '\xfc\xfd\xfe\xff'
+
+for i, c in zip(range(256), quote_array):
+    _safe_map[c] = c if (i < 128 and c in always_safe) else '%%%02X' % i
+_safe_quoters = {}
+
+def quote(s, safe='/'):
+    """quote('abc def') -> 'abc%20def'
+
+    Each part of a URL, e.g. the path info, the query, etc., has a
+    different set of reserved characters that must be quoted.
+
+    RFC 2396 Uniform Resource Identifiers (URI): Generic Syntax lists
+    the following reserved characters.
+
+    reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
+                  "$" | ","
+
+    Each of these characters is reserved in some component of a URL,
+    but not necessarily in all of them.
+
+    By default, the quote function is intended for quoting the path
+    section of a URL.  Thus, it will not encode '/'.  This character
+    is reserved, but in typical usage the quote function is being
+    called on a path where the existing slash characters are used as
+    reserved characters.
+    """
+    # fastpath
+    if not s:
+        if s is None:
+            raise TypeError('None object cannot be quoted')
+        return s
+    cachekey = (safe, always_safe)
+    try:
+        (quoter, safe) = _safe_quoters[cachekey]
+    except KeyError:
+        safe_map = _safe_map.copy()
+        safe_map.update([(c, c) for c in safe])
+        quoter = safe_map.__getitem__
+        safe = always_safe + safe
+        _safe_quoters[cachekey] = (quoter, safe)
+    #if not s.rstrip(safe):
+    #    return s
+    return ''.join(map(quoter, s))
+
+
+def quote_plus(s, safe=''):
+    """Quote the query fragment of a URL; replacing ' ' with '+'"""
+    if ' ' in s:
+        s = quote(s, safe + ' ')
+        return s.replace(' ', '+')
+    return quote(s, safe)
+
+
+def urlencode(query, doseq=0):
+    """Encode a sequence of two-element tuples or dictionary into a URL query string.
+
+    If any values in the query arg are sequences and doseq is true, each
+    sequence element is converted to a separate parameter.
+
+    If the query arg is a sequence of two-element tuples, the order of the
+    parameters in the output will match the order of parameters in the
+    input.
+    """
+
+    if hasattr(query, "items"):
+        # mapping objects
+        query = query.items()
+    else:
+        # it's a bother at times that strings and string-like objects are
+        # sequences...
+        try:
+            # non-sequence items should not work with len()
+            # non-empty strings will fail this
+            if len(query) and not isinstance(query[0], tuple):
+                raise TypeError
+            # zero-length sequences of all types will get here and succeed,
+            # but that's a minor nit - since the original implementation
+            # allowed empty dicts that type of behavior probably should be
+            # preserved for consistency
+        except Error:
+            ty,va,tb = sys.exc_info()
+            raise TypeError
+
+    l = []
+    if not doseq:
+        # preserve old behavior
+        for k, v in query:
+            k = quote_plus(str(k))
+            v = quote_plus(str(v))
+            l.append(k + '=' + v)
+    else:
+        for k, v in query:
+            k = quote_plus(str(k))
+            if isinstance(v, str):
+                v = quote_plus(v)
+                l.append(k + '=' + v)
+            elif _is_unicode(v):
+                # is there a reasonable way to convert to ASCII?
+                # encode generates a string, but "replace" or "ignore"
+                # lose information and "strict" can raise UnicodeError
+                v = quote_plus(v.encode("ASCII","replace"))
+                l.append(k + '=' + v)
+            else:
+                try:
+                    # is this a sufficient test for sequence-ness?
+                    len(v)
+                except TypeError:
+                    # not a sequence
+                    v = quote_plus(str(v))
+                    l.append(k + '=' + v)
+                else:
+                    # loop over the sequence
+                    for elt in v:
+                        l.append(k + '=' + quote_plus(str(elt)))
+    return '&'.join(l)
