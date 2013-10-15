@@ -40,6 +40,12 @@ DEFAULT = [
 ]
 MENU_JEPPETO = ['salvar', 'apagar_jogo']
 JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
+LOADPAGE = '/rest/wiki/%s/%s'
+SAVEPAGE = '/rest/wiki/%s/%s/edit'
+NEWPAGE = '/wiki/newpage/%s?folder=%s'
+#GAMELIST = STORAGE % JEPPETO
+GAMELIST = LOADPAGE % ('activlets', JEPPETO)
+SAVEGAMELIST = SAVEPAGE % ('activlets', JEPPETO)
 
 
 class Builder:
@@ -70,9 +76,11 @@ class Builder:
             print('set_scene', self.scene)
 
         args = self.win.location.search
+        self.props = 'jeppeto'
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
-            props = self.args.setdefault('props', 'jeppeto')
+            props = self.props = self.args.setdefault('props', 'jeppeto')
+            self.folder = self.args.setdefault('folder', '')
             scenes = self.args.setdefault('scenes', 'EICA')
             self.gui.send(STUDIO % (props, 1), record=set_prop, method="GET")
             self.gui.send(STUDIO % (scenes, 2), record=set_scene, method="GET")
@@ -107,6 +115,8 @@ class Builder:
         self.build_deploy(DEFAULT)
         self.process_arguments(gui)
         self.gui.xsrf = self.xsrf
+        self.gui.props = self.props
+        self.gui.folder = self.folder
         self.build_menus()
         print(self.model.items)
         self.model.deploy(self.gui.employ)
@@ -284,8 +294,9 @@ class Menu(object):
         value = self.gui.json.dumps(value)
         data = dict(_xsrf=self.gui.xsrf, value=value)
         self.gui.storage['_JPT_'+self.gui.game] = value
-        self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
+        #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
         print('menu_salva register_value', data)
+        self.gui.send(SAVEPAGE % (self.gui.props, '_JPT_'+self.gui.game), receipt, receipt, data)
 
     def _sub_menu(self, ev, menu, kind='Locus', activated=False, command='DoList'):
         def thumb(o_item, o_Id, **kwargs):
@@ -610,11 +621,12 @@ class Gui(GuiDraw):
             games = self.json.loads(text)
             print('remote load receipt', text, games)
             if games['status'] == 0:
-                self.games = games['result']
+                #self.games = games['result']
+                self.games = games['result']["conteudo"]
             else:
                 print('sending empty game list', text)
-                self.send(STORAGE % JEPPETO, receipt, receipt, data)
-        self.send(STORAGE % JEPPETO, receive_list, receipt, data, 'GET')
+                self.send(SAVEGAMELIST, receipt, receipt, data)
+        self.send(GAMELIST, receive_list, receipt, data, 'GET')
 
     def start(self, ev):
         lst = self.lst
