@@ -133,22 +133,25 @@ class TestPyndoramaControl(unittest.TestCase):
     def test_save_remote(self):
         """test save remote."""
         Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
+        Url = '/rest/wiki/jeppeto/_JPT_Jeppeto_0/edit'
+        Url = '/rest/wiki/activlets/__J_E_P_P_E_T_O__/edit'
+        conts = ['["_JPT_Jeppeto_0"]']
         import json
 
         def store_effect(key, value):
             assert 'o_gcomp' in value, 'but value was %s' % value
 
-        def send_effect(url, func, funcb, value):
+        def send_effect(url, func, funcb, value, tx=0):
             assert Url == url, 'but url was %s' % url
             val = [L0, AM]
             #value = value.replace('+', ' ')
             #val = json.dumps(val)
             #value = json.loads(unquote(value.split('&')[-1].split('=')[-1]))
-            value = json.loads(value['value'])
-            #value = unquote(value.split('&')[-1])
-            #val = urlencode({'value': json.dumps(val)})
-            #data = json.loads(value['value'].replace("'", '"'))
-            assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val[0])
+            #value = json.loads(value['value'])
+            assert value['conteudo'] == conts.pop(), 'but value conteudo was %s' % value['conteudo']
+            if len(value) > 20 :
+                value = json.loads(value['conteudo'])
+                assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val[0])
         self._action_load()
         self.app.game = "Jeppeto_0"
         self.app.json = self.br
@@ -164,7 +167,7 @@ class TestPyndoramaControl(unittest.TestCase):
         Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
         import json
 
-        def send_effect(url, func, funcb, value):
+        def send_effect(url, func, funcb, value, tx=0):
             assert Url == url, 'but url was %s' % url
             val = [L0, AM]
             value = value.replace('+', ' ')
@@ -200,7 +203,8 @@ class TestPyndoramaControl(unittest.TestCase):
         def side_effect(a, b, c, d, e):
             assert a == URLJEPPETO, 'but url was %s' % a
             assert e == "GET"
-            assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
+            #assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
+            assert d == {'_xsrf': '', 'conteudo': []}, 'but data was %s' % d
             self.app.games = ['jpt_0', 'g']
 
         def div_effect(a=0, b=0, c=0, s_top=0, s_display=0, s_left=0, s_width=0,
@@ -220,6 +224,7 @@ class TestPyndoramaControl(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
+URLJEPPETO = '/rest/wiki/activlets/__J_E_P_P_E_T_O__'
 L0 = dict(s_top=0, s_left=0, o_gcomp='div',
           s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
           s_width=1100, o_placeid='book', o_part='Locus', o_item='EICA/1_1c.jpg', s_height=800,

@@ -57,6 +57,7 @@ class Builder:
         self.model = model
         self.props, self.scenes = EICAP, EICA
         self.xsrf = ''
+        self.properties, self.folder = 'jeppeto', ''
         if 'xsrf' in self.doc.cookie:
             self.xsrf = {key: value for key, value in [cook.split('=')
                          for cook in self.doc.cookie.split('; ') if 'xsrf' in cook]}['_xsrf']
@@ -76,10 +77,9 @@ class Builder:
             print('set_scene', self.scene)
 
         args = self.win.location.search
-        self.props = 'jeppeto'
         if '=' in args:
             self.args = {k: v for k, v in [c.split('=') for c in args[1:].split('&')]}
-            props = self.props = self.args.setdefault('props', 'jeppeto')
+            props = self.properties = self.args.setdefault('props', 'jeppeto')
             self.folder = self.args.setdefault('folder', '')
             scenes = self.args.setdefault('scenes', 'EICA')
             self.gui.send(STUDIO % (props, 1), record=set_prop, method="GET")
@@ -115,7 +115,7 @@ class Builder:
         self.build_deploy(DEFAULT)
         self.process_arguments(gui)
         self.gui.xsrf = self.xsrf
-        self.gui.props = self.props
+        self.gui.properties = self.properties
         self.gui.folder = self.folder
         self.build_menus()
         print(self.model.items)
@@ -279,24 +279,7 @@ class Menu(object):
         self._sub_menu(ev, menu)
 
     def menu_salvar(self, ev, menu):
-        value = []
-
-        def register_value(**kwargs):
-            if (not 'o_placeid' in kwargs) and 'o_place' in kwargs and kwargs['o_place']:
-                kwargs['o_placeid'] = kwargs.pop('o_place').id
-            elif 'o_place' in kwargs:
-                kwargs.pop('o_place')
-            value.append(kwargs)
-
-        def receipt(text=0, error="error"):
-            print('menu_salva register_value receipt', text)
-        self.gui.control.deploy(register_value)
-        value = self.gui.json.dumps(value)
-        data = dict(_xsrf=self.gui.xsrf, value=value)
-        self.gui.storage['_JPT_'+self.gui.game] = value
-        #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
-        print('menu_salva register_value', data)
-        self.gui.send(SAVEPAGE % (self.gui.props, '_JPT_'+self.gui.game), receipt, receipt, data)
+        self.gui.remote_save()
 
     def _sub_menu(self, ev, menu, kind='Locus', activated=False, command='DoList'):
         def thumb(o_item, o_Id, **kwargs):
@@ -500,6 +483,7 @@ class Gui(GuiDraw):
         self.action = self._action
         self.contextmenu = self._contextmenu
         self.revoke_action = lambda x=0: None
+        self.games = []
 
     def start_a_game(self, game):
         print('start a game')
@@ -585,7 +569,8 @@ class Gui(GuiDraw):
             kwargs.update(o_gcomp=o_gcomp)
             self.control.activate(
                 self.deliverables[o_gcomp], **kwargs)
-        self.send(STORAGE % game, read, not_read, method="GET")
+        #self.send(STORAGE % game, read, not_read, method="GET")
+        self.send(LOADPAGE % (self.properties, game), read, not_read, method="GET")
 
     def save(self, cmd):
         if (not 'o_placeid' in cmd) and 'o_place' in cmd and cmd['o_place']:
@@ -596,6 +581,40 @@ class Gui(GuiDraw):
         'o_emp' in cmd and cmd.pop('o_emp')
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
+
+    def _remote_save(self, value=[], url=SAVEGAMELIST, nome='new_game'):
+        #data = dict(_xsrf=self.xsrf, value=value)
+        data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
+
+        def receipt(text, error="error"):
+            print('remote save receipt error', text)
+
+        def receive_list(text):
+            print('remote save receipt', text, games)
+        self.send(url, receive_list, receipt, data, "POST")
+
+    def remote_save(self):
+        value = []
+
+        def register_value(**kwargs):
+            if (not 'o_placeid' in kwargs) and 'o_place' in kwargs and kwargs['o_place']:
+                kwargs['o_placeid'] = kwargs.pop('o_place').id
+            elif 'o_place' in kwargs:
+                kwargs.pop('o_place')
+            value.append(kwargs)
+
+        def receipt(text=0, error="error"):
+            print('menu_salva register_value receipt', text)
+        self.control.deploy(register_value)
+        value = self.json.dumps(value)
+        #data = dict(_xsrf=self.xsrf, value=value)
+        data = dict(_xsrf=self.xsrf, conteudo=value)
+        self.storage['_JPT_'+self.game] = value
+        #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
+        print('menu_salva register_value', data)
+        self._remote_save(self.games+['_JPT_'+self.game])
+        self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game)
+        self.send(SAVEPAGE % (self.gui.props, '_JPT_'+self.gui.game), receipt, receipt, data)
 
     def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data='', method="POST"):
         def _on_sent(req):
@@ -610,23 +629,27 @@ class Gui(GuiDraw):
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
-    def _remote_load(self):
+    def _remote_transfer(self, value=[]):
         self.games = []
-        data = dict(_xsrf=self.xsrf, value=[])
+        transfer = "GET" if value == [] else "POST"
+        #data = dict(_xsrf=self.xsrf, value=value)
+        data = dict(_xsrf=self.xsrf, conteudo=value)
 
         def receipt(text, error="error"):
             print('remote load receipt error', text)
+            self._start()
 
         def receive_list(text):
             games = self.json.loads(text)
-            print('remote load receipt', text, games)
             if games['status'] == 0:
                 #self.games = games['result']
                 self.games = games['result']["conteudo"]
             else:
                 print('sending empty game list', text)
                 self.send(SAVEGAMELIST, receipt, receipt, data)
-        self.send(GAMELIST, receive_list, receipt, data, 'GET')
+            print('remote load receive list', text, self.games)
+            self._start()
+        self.send(GAMELIST, receive_list, receipt, data, transfer)
 
     def start(self, ev):
         lst = self.lst
@@ -642,7 +665,9 @@ class Gui(GuiDraw):
 
         if JEPPETO not in self.storage:
             self.storage[JEPPETO] = self.json.dumps([])
-        self._remote_load()
+        self._remote_transfer()
+
+    def _start(self):
         games = self.json.loads(self.storage[JEPPETO]) + self.games
         print ('start', games, len(games))
         default_name, ask = 'Jeppeto_%d' % len(games), 'Nome do novo jogo'
@@ -867,6 +892,7 @@ for i, c in zip(range(256), quote_array):
     _safe_map[c] = c if (i < 128 and c in always_safe) else '%%%02X' % i
 _safe_quoters = {}
 
+
 def quote(s, safe='/'):
     """quote('abc def') -> 'abc%20def'
 
@@ -942,7 +968,7 @@ def urlencode(query, doseq=0):
             # allowed empty dicts that type of behavior probably should be
             # preserved for consistency
         except Error:
-            ty,va,tb = sys.exc_info()
+            ty, va, tb = sys.exc_info()
             raise TypeError
 
     l = []
@@ -962,7 +988,7 @@ def urlencode(query, doseq=0):
                 # is there a reasonable way to convert to ASCII?
                 # encode generates a string, but "replace" or "ignore"
                 # lose information and "strict" can raise UnicodeError
-                v = quote_plus(v.encode("ASCII","replace"))
+                v = quote_plus(v.encode("ASCII", "replace"))
                 l.append(k + '=' + v)
             else:
                 try:
