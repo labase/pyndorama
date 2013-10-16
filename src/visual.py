@@ -58,13 +58,14 @@ class Builder:
         self.props, self.scenes = EICAP, EICA
         self.xsrf = ''
         self.properties, self.folder = 'jeppeto', ''
+        self.nmenu = self.rmenu = self.args = self.pmenu = self.smenu = self.gui = None
+        self.wenu = self.jenu = self.tenu = self.omenu = self.mmenu = self.umenu = None
         if 'xsrf' in self.doc.cookie:
             self.xsrf = {key: value for key, value in [cook.split('=')
                          for cook in self.doc.cookie.split('; ') if 'xsrf' in cook]}['_xsrf']
             print('xsrf', self.xsrf)
 
     def process_arguments(self, gui):
-        self.pmenu = self.smenu = None
 
         def set_prop(value):
             self.props = self.json.loads(value)['result']
@@ -135,6 +136,7 @@ class Menu(object):
         self.book = self.gui.doc["book"]
         self.menu_ad_cenario = self.menu___ROOT__ = self.menu_ad_objeto = self.menu_ad
         self.menu_wiki = self.menu_jeppeto = self.menu_ad
+        self.target, self.id, self.menu = self, '', None
         menu and self.build_menu(menu, extra=extra)
 
     def build_item(self, item, source, menu):
@@ -203,7 +205,7 @@ class Menu(object):
             s_left=prop.offsetLeft, s_top=prop.offsetTop, o_text=prop.html)
         self._editar(ev, prop, kwargs)
 
-    def _editar(self, ev, prop, kwargs):
+    def _editar(self, event, prop, kwargs):
         prop_box = self.gui.doc["propbox"]
         prop_size = self.gui.doc["propsize"]
         prop_size.style.backgroundColor = 'green'
@@ -264,8 +266,8 @@ class Menu(object):
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
 
     def menu_apagar_jogo(self, ev, menu):
-        self.gui.storage['_JPT_'+self.gui.game] = self.json.dumps([])
-        games = self.json.loads(self.gui.storage[JEPPETO])
+        self.gui.storage['_JPT_'+self.gui.game] = self.gui.json.dumps([])
+        games = self.gui.json.loads(self.gui.storage[JEPPETO])
         games.pop(self.gui.game)
         self.gui.storage[JEPPETO] = games
 
@@ -285,10 +287,10 @@ class Menu(object):
         def thumb(o_item, o_Id, **kwargs):
             self.activated = activated
             item = (MENUITEM % o_item) if o_item[:5] not in 'extra/balao' else EXTRA % MARKER
-            print ('_sub_menuthumb', o_item, item, o_item[:5])
+            print('_sub_menuthumb', o_item, item, o_item[:5])
             self.build_item(o_Id, item, menu)
         pane = menu.menu
-        while (pane.hasChildNodes()):
+        while pane.hasChildNodes():
             pane.removeChild(pane.lastChild)
         self.gui.control.activate(o_emp=thumb, o_cmd=command, o_kind=kind)
         pane.style.display = 'block'
@@ -460,6 +462,8 @@ class GuiDraw(object):
 KWA = dict(s_position='absolute', s_opacity=0.1, s_top=180,
            o_src=MENUPX % 'drawing', o_width=400, o_height=400)
 
+EL, ED = [], {}
+
 
 class Gui(GuiDraw):
     """Deal with incoming html events. :ref:`gui_event`
@@ -482,8 +486,11 @@ class Gui(GuiDraw):
         self.doc.onclick = self.revoke_menu
         self.action = self._action
         self.contextmenu = self._contextmenu
-        self.revoke_action = lambda x=0: None
+        self.context_obj_id = self.lst = self.start_div = self.revoke_action = lambda x=0: None
+        self.status = self.game = self.xsrf = self.properties = self.folder = self.control = None
         self.games = []
+        self.commands = {}
+        self.offx = self.offy = 0
 
     def start_a_game(self, game):
         print('start a game')
@@ -541,7 +548,6 @@ class Gui(GuiDraw):
         self.img(**kwargs).oncontextmenu = self.object_context  # gui.sel_prop
 
     def load(self, cmd=None):
-        self.commands = ''
         game = '_JPT_' + (cmd or self.game)
 
         def not_read(x=0, text=1):
@@ -582,7 +588,7 @@ class Gui(GuiDraw):
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
-    def _remote_save(self, value=[], url=SAVEGAMELIST, nome='new_game'):
+    def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game'):
         #data = dict(_xsrf=self.xsrf, value=value)
         data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
 
@@ -590,7 +596,7 @@ class Gui(GuiDraw):
             print('remote save receipt error', text)
 
         def receive_list(text):
-            print('remote save receipt', text, games)
+            print('remote save receipt', text)
         self.send(url, receive_list, receipt, data, "POST")
 
     def remote_save(self):
@@ -614,14 +620,14 @@ class Gui(GuiDraw):
         print('menu_salva register_value', data)
         self._remote_save(self.games+['_JPT_'+self.game])
         self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game)
-        self.send(SAVEPAGE % (self.gui.props, '_JPT_'+self.gui.game), receipt, receipt, data)
+        self.send(SAVEPAGE % (self.properties, '_JPT_'+self.game), receipt, receipt, data)
 
-    def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data='', method="POST"):
-        def _on_sent(req):
-            if req.status == 200 or req.status == 0 and req.text:
-                record(req.text)
+    def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data=ED, method="POST"):
+        def _on_sent(requisition):
+            if requisition.status == 200 or requisition.status == 0 and requisition.text:
+                record(requisition.text)
             else:
-                terr("error %d" % req.status, req.text)
+                terr("error %d" % requisition.status, requisition.text)
         req = self.ajax()
         req.on_complete = _on_sent
         req.set_timeout(TIMEOUT, terr)
@@ -629,11 +635,12 @@ class Gui(GuiDraw):
         req.set_header('content-type', 'application/x-www-form-urlencoded')
         req.send(data)
 
-    def _remote_transfer(self, value=[]):
+    def start(self, ev):
+        if JEPPETO not in self.storage:
+            self.storage[JEPPETO] = self.json.dumps([])
         self.games = []
-        transfer = "GET" if value == [] else "POST"
         #data = dict(_xsrf=self.xsrf, value=value)
-        data = dict(_xsrf=self.xsrf, conteudo=value)
+        data = dict(_xsrf=self.xsrf, conteudo='[]')
 
         def receipt(text, error="error"):
             print('remote load receipt error', text)
@@ -648,26 +655,20 @@ class Gui(GuiDraw):
                 print('sending empty game list', text)
                 self.send(SAVEGAMELIST, receipt, receipt, data)
             print('remote load receive list', text, self.games)
-            self._start()
-        self.send(GAMELIST, receive_list, receipt, data, transfer)
+            self._start(ev)
+        self.send(GAMELIST, receive_list, receipt, data, 'GET')
 
-    def start(self, ev):
+    def _start(self, ev):
         lst = self.lst
 
-        def nameit(ev):
-            self.game = ev.target.id[5:]
+        def nameit(event):
+            self.game = event.target.id[5:]
             #print('nameit', self.game)
             self.start_div.style.display = 'none'
             self.doc["illumini"].style.display = "none"
             self.doc["text"].style.display = "none"
             self.load()
         self.book <= lst
-
-        if JEPPETO not in self.storage:
-            self.storage[JEPPETO] = self.json.dumps([])
-        self._remote_transfer()
-
-    def _start(self):
         games = self.json.loads(self.storage[JEPPETO]) + self.games
         print ('start', games, len(games))
         default_name, ask = 'Jeppeto_%d' % len(games), 'Nome do novo jogo'
@@ -695,12 +696,12 @@ class Gui(GuiDraw):
         def response(req=self, default=default):
             data = (req.status == 200 or req.status == 0) and req.text or default
             deliver(data)
-        req = self.ajax()
-        req.on_complete = response
-        req.set_timeout(TIMEOUT, response)
-        req.open('GET', url, True)
-        req.set_header('content-type', 'application/x-www-form-urlencoded')
-        req.send()
+        requisition = self.ajax()
+        requisition.on_complete = response
+        requisition.set_timeout(TIMEOUT, response)
+        requisition.open('GET', url, True)
+        requisition.set_header('content-type', 'application/x-www-form-urlencoded')
+        requisition.send()
 
     def employ(self, o_gcomp=None, o_placeid=None, **kwargs):
         place = kwargs.pop('o_place') or self.doc
@@ -708,16 +709,16 @@ class Gui(GuiDraw):
             place = self.doc[o_placeid]
         except Exception:
             print('place rejected:', o_placeid, o_gcomp, kwargs)
-        print ('employ', place, o_placeid, o_gcomp, kwargs)
+        print('employ', place, o_placeid, o_gcomp, kwargs)
         self.deliverables[o_gcomp](o_place=place, **kwargs)
 
-    def sel_prop(self, ev):
-        prop = self.doc[ev.target.id]
+    def sel_prop(self, event):
+        prop = self.doc[event.target.id]
         prop_box = self.doc["propbox"]
         prop_size = self.doc["propsize"]
         prop_place = prop.parentNode
-        self.contextmenu = lambda x, y: None
-        self.action = lambda x: None
+        self.contextmenu = lambda ev, menu: None
+        self.action = lambda ev: None
 
         def dragstart(ev):
             self.book.bind('drop', dropmove)
@@ -871,135 +872,3 @@ class Gui(GuiDraw):
             marginLeft='-150px', marginTop='-100px', padding='10px', s_display='none',
             s_width='2px', s_height='2px', s_border='1px solid #d0d0d0')
         return start
-
-
-always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-               'abcdefghijklmnopqrstuvwxyz'
-               '0123456789' '_.-')
-_safe_map = {}
-quote_array = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14' + \
-    '''\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@ABC''' + \
-    'DEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83' + \
-    '\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97' + \
-    '\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab' + \
-    '\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf' + \
-    '\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3' + \
-    '\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7' + \
-    '\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb' + \
-    '\xfc\xfd\xfe\xff'
-
-for i, c in zip(range(256), quote_array):
-    _safe_map[c] = c if (i < 128 and c in always_safe) else '%%%02X' % i
-_safe_quoters = {}
-
-
-def quote(s, safe='/'):
-    """quote('abc def') -> 'abc%20def'
-
-    Each part of a URL, e.g. the path info, the query, etc., has a
-    different set of reserved characters that must be quoted.
-
-    RFC 2396 Uniform Resource Identifiers (URI): Generic Syntax lists
-    the following reserved characters.
-
-    reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
-                  "$" | ","
-
-    Each of these characters is reserved in some component of a URL,
-    but not necessarily in all of them.
-
-    By default, the quote function is intended for quoting the path
-    section of a URL.  Thus, it will not encode '/'.  This character
-    is reserved, but in typical usage the quote function is being
-    called on a path where the existing slash characters are used as
-    reserved characters.
-    """
-    # fastpath
-    if not s:
-        if s is None:
-            raise TypeError('None object cannot be quoted')
-        return s
-    cachekey = (safe, always_safe)
-    try:
-        (quoter, safe) = _safe_quoters[cachekey]
-    except KeyError:
-        safe_map = _safe_map.copy()
-        safe_map.update([(c, c) for c in safe])
-        quoter = safe_map.__getitem__
-        safe = always_safe + safe
-        _safe_quoters[cachekey] = (quoter, safe)
-    #if not s.rstrip(safe):
-    #    return s
-    return ''.join(map(quoter, s))
-
-
-def quote_plus(s, safe=''):
-    """Quote the query fragment of a URL; replacing ' ' with '+'"""
-    if ' ' in s:
-        s = quote(s, safe + ' ')
-        return s.replace(' ', '+')
-    return quote(s, safe)
-
-
-def urlencode(query, doseq=0):
-    """Encode a sequence of two-element tuples or dictionary into a URL query string.
-
-    If any values in the query arg are sequences and doseq is true, each
-    sequence element is converted to a separate parameter.
-
-    If the query arg is a sequence of two-element tuples, the order of the
-    parameters in the output will match the order of parameters in the
-    input.
-    """
-
-    if hasattr(query, "items"):
-        # mapping objects
-        query = query.items()
-    else:
-        # it's a bother at times that strings and string-like objects are
-        # sequences...
-        try:
-            # non-sequence items should not work with len()
-            # non-empty strings will fail this
-            if len(query) and not isinstance(query[0], tuple):
-                raise TypeError
-            # zero-length sequences of all types will get here and succeed,
-            # but that's a minor nit - since the original implementation
-            # allowed empty dicts that type of behavior probably should be
-            # preserved for consistency
-        except Error:
-            ty, va, tb = sys.exc_info()
-            raise TypeError
-
-    l = []
-    if not doseq:
-        # preserve old behavior
-        for k, v in query:
-            k = quote_plus(str(k))
-            v = quote_plus(str(v))
-            l.append(k + '=' + v)
-    else:
-        for k, v in query:
-            k = quote_plus(str(k))
-            if isinstance(v, str):
-                v = quote_plus(v)
-                l.append(k + '=' + v)
-            elif _is_unicode(v):
-                # is there a reasonable way to convert to ASCII?
-                # encode generates a string, but "replace" or "ignore"
-                # lose information and "strict" can raise UnicodeError
-                v = quote_plus(v.encode("ASCII", "replace"))
-                l.append(k + '=' + v)
-            else:
-                try:
-                    # is this a sufficient test for sequence-ness?
-                    len(v)
-                except TypeError:
-                    # not a sequence
-                    v = quote_plus(str(v))
-                    l.append(k + '=' + v)
-                else:
-                    # loop over the sequence
-                    for elt in v:
-                        l.append(k + '=' + quote_plus(str(elt)))
-    return '&'.join(l)
