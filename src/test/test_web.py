@@ -13,7 +13,7 @@ Pyndorama - Teste
 :Revision: 0.1.0
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
-"""
+
 import unittest
 #from json import dumps, loads
 from webmain import app
@@ -81,3 +81,4 @@ class TestTime_Web(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+"""

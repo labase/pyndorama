@@ -16,9 +16,10 @@ Pyndorama - Teste
 """
 import unittest
 import model
+import json
 from visual import Builder
 from visual import Gui
-from mock import MagicMock  # , ANY
+from mock import MagicMock, ANY
 #ITEM = 'it3m'
 
 
@@ -37,7 +38,7 @@ class TestPyndoramaControl(unittest.TestCase):
                 self.__getitem__ = self.DIV = self.div = self.IMG = self.nop
                 self.div = self.img = self.deploy = self.employ = self.nop
                 self.show_front_menu = self.screen_context = self.nop
-                self.menuX = self.menuY = 0
+                self.offsetLeft = self.offsetTop = self.menuX = self.menuY = 1
                 self.Id = self.search = ''
                 self.location = self.target = self
                 self.aargs = self.items = self.evs = []
@@ -67,7 +68,10 @@ class TestPyndoramaControl(unittest.TestCase):
 
         self.control = model.init()
         self.br = Brython()
+        self.br.dumps = json.dumps
+        self.br.loads = json.loads
         self.app = Gui(self.br)
+        self.app.menuX = self.app.menuY = 1
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
         self.gui = _Gui()
@@ -81,11 +85,51 @@ class TestPyndoramaControl(unittest.TestCase):
         self.gui['adm1n'] = {}
         self.control.activate(self.gui.employ, **JEP0["JAC"])
 
-    def nest_action_load(self):
-        """test load an action."""
-        COMP = L0
+    def _add_locus(self):
+        """ adds a new locus."""
+        self.br.id, self.app.game = 'idEica01', '_JPT_g0'
+        self.app.storage = dict(_JPT__JPT_g0=json.dumps([LR]))
 
-        def eff(cmpr=COMP, **kwargs):
+        def eff(**kw):
+            assert 2424 in kw, 'but not in %s' % kw
+        self.br.DIV = MagicMock(name='div', side_effect=eff)
+        self.builder.jenu.ad_cenario(self.br, self.br)
+
+    def test_add_locus(self):
+        """test adds a new locus."""
+        self._add_locus()
+        assert 'o1_Eica01' in self.br.DIV.call_args[1]['Id'], self.br.DIV.call_args[1]['Id']
+        loci = self.control.items
+        assert len(loci) == 1, 'but items was %s' % loci
+        assert loci[0].o_Id == 'o1_Eica01', 'but id was %s' % loci[0].o_Id
+
+    def test_add_object(self):
+        """test adds a new holder object."""
+        self._add_locus()
+        self.br.id, self.app.game = 'idEica01', '_JPT_g0'
+        self.app.storage = dict(_JPT__JPT_g0=json.dumps([LR]))
+
+        def eff(**kw):
+            assert 2424 in kw, 'but not in %s' % kw
+        self.br.IMG = MagicMock(name='img', side_effect=eff)
+        act, self.control.activate = self.control.activate, MagicMock(name='act')
+        self.control.activate.side_effect = lambda **kw: act(**kw)
+        self.builder.jenu.ad_objeto(self.br, self.br)
+        self.control.activate.assert_called_any()
+        #self.br.IMG.assert_called_once_with()
+        loci = self.control.items
+        assert len(loci) == 1, 'but items was %s' % loci
+        assert loci[0].o_Id == 'o2_Eica01', 'but id was %s' % loci[0].o_Id
+        assert loci[0].items[0].o_Id == 'o3_Eica01', 'but id was %s' % loci[0].items[0].o_Id
+        assert 'o3_Eica01' in self.br.IMG.call_args[1]['Id'], 'but call id was %s' % self.br.IMG.call_args[1]['Id']
+
+    def test_action_load(self):
+        """test load an action."""
+        COMP = [dict(AM), dict(L0)]
+        [i.update(o_place=None) for i in COMP]
+
+        def eff(**kwargs):
+            cmpr = COMP.pop()
             assert kwargs == cmpr, 'but action were %s -AND- %s' % (kwargs, cmpr)
 
         self._action_load()
@@ -97,13 +141,43 @@ class TestPyndoramaControl(unittest.TestCase):
         assert things <= set(self.control.ALL_THINGS.keys()), self.control.ALL_THINGS.keys()
         assert len(self.control.items) == 1, 'Not one member in items %s' % self.control.items
         assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'Not current locus %s' % self.control.current.o_Id
-        register_value = MagicMock(side_effect=lambda **k: eff(cmpr=AM, **k))
-        COMP = AM
+        register_value = MagicMock(side_effect=lambda **k: eff(**k))
+        #COMP = AM
         self.control.deploy(register_value)
         register_value.assert_called_once()
         pass
 
-    def _nest_action_baloon(self):
+    def _remote_load(self):
+        """fixture for loading from remote server."""
+        self.br.on_complete = lambda x: None
+
+        def do_call():
+            self.br.on_complete(self.br)
+        self.br.set_timeout = self.br.set_header = MagicMock()
+        self.br.open = MagicMock(name='open')
+        self.br.send = MagicMock(name='send', side_effect=lambda x: do_call())
+        self.app.ajax = lambda: self.br  # MagicMock()
+
+    def test_remote_load(self):
+        """test load from remote server."""
+        self._remote_load()
+        self.br.status, self.br.text = 200, json.dumps(dict(status='0', conteudo=[LR]))
+        self.app.load('_JPT_g0')
+        assert self.br.on_complete
+        self.br.open.assert_called_once_with('GET', '/rest/wiki/jeppeto/_JPT__JPT_g0', True)
+        self.br.send.assert_called_once_with({})
+
+    def test_no_remote_local_load(self):
+        """test load from local on remote server denial."""
+        self._remote_load()
+        self.app.storage = dict(_JPT__JPT_g0=json.dumps([LR]))
+        self.br.status, self.br.text = 404, json.dumps(dict(status='0', conteudo=[LR]))
+        self.app.load('_JPT_g0')
+        assert self.br.on_complete
+        self.br.open.assert_called_once_with('GET', '/rest/wiki/jeppeto/_JPT__JPT_g0', True)
+        self.br.send.assert_called_once_with({})
+
+    def nest_action_baloon(self):
         """test baloon action."""
         self._action_load()
         self.br.stopPropagation = self.br.preventDefault = self.br.nop
@@ -116,6 +190,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.evs[0](self.br)
         self.control.employ = MagicMock()
         #self.control.employ.assert_called_once_with(1,2)
+        assert isinstance(self.br.aargs, dict), 'but aarg was %s with %s' % (type(self.br.aargs), self.br.aargs)
         assert self.br.aargs["o_Id"] == "o1_balao", 'no balao in %s' % self.br.aargs
         pass
 
@@ -130,8 +205,8 @@ class TestPyndoramaControl(unittest.TestCase):
     def test_save_remote(self):
         """test save remote."""
         #Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
-        Urle = '/rest/wiki/jeppeto/_JPT_Jeppeto_0/edit'
-        Url = '/rest/wiki/activlets/__J_E_P_P_E_T_O__/edit'
+        Urle = '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
+        Url = '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
         conts = ['', '[]', '["_JPT_Jeppeto_0"]']
         urls = [Urle, '/wiki/newpage/jeppeto?folder=', Url]
         import json
@@ -143,10 +218,6 @@ class TestPyndoramaControl(unittest.TestCase):
             expected = urls.pop()
             assert expected == url, 'but url was %s against %s' % (url, expected)
             val = [L0, AM]
-            #value = value.replace('+', ' ')
-            #val = json.dumps(val)
-            #value = json.loads(unquote(value.split('&')[-1].split('=')[-1]))
-            #value = json.loads(value['value'])
             expect_cont = conts.pop()
             if len(value['conteudo']) > 20:
                 value = json.loads(value['conteudo'])
@@ -155,15 +226,17 @@ class TestPyndoramaControl(unittest.TestCase):
             else:
                 assert value['conteudo'] == expect_cont, \
                     'but value conteudo was %s against %s' % (value['conteudo'], conts)
+            func('um texto')
         self._action_load()
         self.app.game = "Jeppeto_0"
         self.app.json = self.br
         self.br.dumps = lambda x: json.dumps(x)
         self.app.storage = MagicMock(name='store', side_effect=store_effect)
-        self.app.send = MagicMock(name='send', side_effect=send_effect)
-        self.builder.jenu.menu_salvar(None, None)
-        self.app.send.assert_called_once()
-        self.app.storage.__setitem__.assert_called_once()
+        send = self.app.send = MagicMock(name='send', side_effect=send_effect)
+        self.app.remote_save()
+        send.assert_any_call(ANY, ANY, ANY, ANY, "POST")
+        self.app.storage.__setitem__.assert_any_call(ANY, ANY)
+        assert send.call_count == 3, 'but send count was %s' % send.call_count
 
     def test_Menu_cenario(self):
         """test add a new scene."""
@@ -212,12 +285,16 @@ class TestPyndoramaControl(unittest.TestCase):
         self.builder.build_all(self.app)
         self.app.start(event)
         self.app.send.assert_called_once()
-        self.app.div.assert_called()
+        self.app.div.assert_called_any()
 
 if __name__ == '__main__':
     unittest.main()
 #URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
 URLJEPPETO = '/rest/wiki/activlets/__J_E_P_P_E_T_O__'
+LR = {r's_top': 0, r's_left': 0, r'o_gcomp': r'div',
+      r's_background': r'url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
+      r's_width': 1100, r'o_Id': r'o1_EICA/1_1c.jpg', r'o_item': r'EICA/1_1c.jpg', r'o_part': r'Locus',
+      r's_height': 800, r's_position': r'absolute', r's_backgroundSize': r'100% 100%', r'o_placeid': r'book'}
 L0 = dict(
     s_top=0, s_left=0, o_gcomp='div',
     s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
