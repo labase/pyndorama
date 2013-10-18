@@ -31,7 +31,7 @@ EICAP = ["jeppeto/Lutroforo.png", "jeppeto/Pacote.png", "jeppeto/Pote_com_bico_-
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
-STORAGE = "https://activufrj.nce.ufrj.br/storage/jeppeto/%s/__persist__"
+STORAGE = "https://activufrj.nce.ufrj.br/storage/%s/%s/__persist__"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar', 'jeppeto']
 MENU_PROP = ['apagar', 'configurar', 'pular', 'esconder', 'mostrar']
 MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular', 'esconder', 'mostrar']
@@ -39,13 +39,15 @@ MENU_TEXT = ['balao']
 DEFAULT = [
 ]
 MENU_JEPPETO = ['salvar', 'apagar_jogo']
-JEPPETO, LGM, NGM = "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
+JEPPETOAPP, JEPPETO, LGM, NGM = "jeppeto", "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
 LOADPAGE = '/rest/wiki/%s/%s'
 SAVEPAGE = '/rest/wiki/edit/%s/%s'
 NEWPAGE = '/wiki/newpage/%s?folder=%s'
 #GAMELIST = STORAGE % JEPPETO
-GAMELIST = LOADPAGE % ('activlets', JEPPETO)
-SAVEGAMELIST = SAVEPAGE % ('activlets', JEPPETO)
+NEWPAGE = STORAGE
+SAVEPAGE = LOADPAGE = STORAGE
+GAMELIST = LOADPAGE % (JEPPETOAPP, JEPPETO)
+SAVEGAMELIST = SAVEPAGE % (JEPPETOAPP, JEPPETO)
 
 
 class Builder:
@@ -627,7 +629,8 @@ class Gui(GuiDraw):
         self.storage['_JPT_'+self.game] = value
         #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
         self._remote_save(self.games+['_JPT_'+self.game])
-        self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
+        #self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
+        self._remote_save([], NEWPAGE % (self.properties, JEPPETO), '_JPT_'+self.game, save_page)
 
     def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data=ED, method="POST"):
         def _on_sent(requisition):

@@ -18,11 +18,11 @@ import unittest
 import model
 import json
 from visual import Builder
-from visual import Gui
+from visual import Gui, LOADPAGE, SAVEPAGE, NEWPAGE, GAMELIST, SAVEGAMELIST, JEPPETO
 from mock import MagicMock, ANY
 #ITEM = 'it3m'
 
-
+LOAD = LOADPAGE % ('jeppeto', '_JPT__JPT_g0')
 class TestPyndoramaControl(unittest.TestCase):
 
     def setUp(self):
@@ -164,7 +164,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.status, self.br.text = 200, json.dumps(dict(status='0', conteudo=[LR]))
         self.app.load('_JPT_g0')
         assert self.br.on_complete
-        self.br.open.assert_called_once_with('GET', '/rest/wiki/jeppeto/_JPT__JPT_g0', True)
+        self.br.open.assert_called_once_with('GET', LOAD, True)
         self.br.send.assert_called_once_with({})
 
     def test_no_remote_local_load(self):
@@ -174,7 +174,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.status, self.br.text = 404, json.dumps(dict(status='0', conteudo=[LR]))
         self.app.load('_JPT_g0')
         assert self.br.on_complete
-        self.br.open.assert_called_once_with('GET', '/rest/wiki/jeppeto/_JPT__JPT_g0', True)
+        self.br.open.assert_called_once_with('GET', LOAD, True)
         self.br.send.assert_called_once_with({})
 
     def nest_action_baloon(self):
@@ -205,10 +205,10 @@ class TestPyndoramaControl(unittest.TestCase):
     def test_save_remote(self):
         """test save remote."""
         #Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
-        Urle = '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
-        Url = '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
+        Urle = SAVEPAGE % ('jeppeto', '_JPT_Jeppeto_0')  #  '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
+        Url = GAMELIST  # '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
         conts = ['', '[]', '["_JPT_Jeppeto_0"]']
-        urls = [Urle, '/wiki/newpage/jeppeto?folder=', Url]
+        urls = [Urle, NEWPAGE % ('jeppeto', JEPPETO), Url]  # '/wiki/newpage/jeppeto?folder=', Url]
         import json
 
         def store_effect(key, value):
@@ -267,7 +267,7 @@ class TestPyndoramaControl(unittest.TestCase):
         ]
 
         def side_effect(a, b, c, d, e):
-            assert a == URLJEPPETO, 'but url was %s' % a
+            assert a == GAMELIST, 'but url was %s' % a
             assert e == "GET"
             #assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
             assert d == {'_xsrf': '', 'conteudo': '[]'}, 'but data was %s' % d
