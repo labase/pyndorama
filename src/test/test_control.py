@@ -208,7 +208,7 @@ class TestPyndoramaControl(unittest.TestCase):
         Urle = SAVEPAGE % ('jeppeto', '_JPT_Jeppeto_0')  #  '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
         Url = GAMELIST  # '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
         conts = ['', '[]', '["_JPT_Jeppeto_0"]']
-        urls = [Urle, NEWPAGE % ('jeppeto', JEPPETO), Url]  # '/wiki/newpage/jeppeto?folder=', Url]
+        urls = [Urle, NEWPAGE % ('jeppeto', '_JPT_Jeppeto_0'), Url]  # '/wiki/newpage/jeppeto?folder=', Url]
         import json
 
         def store_effect(key, value):
@@ -219,12 +219,12 @@ class TestPyndoramaControl(unittest.TestCase):
             assert expected == url, 'but url was %s against %s' % (url, expected)
             val = [L0, AM]
             expect_cont = conts.pop()
-            if len(value['conteudo']) > 20:
-                value = json.loads(value['conteudo'])
+            if len(value['value']) > 20:
+                value = json.loads(value['value'])
                 #assert False, 'val, value %s %s' % (value, val)
                 assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val[0])
             else:
-                assert value['conteudo'] == expect_cont, \
+                assert value['value'] == expect_cont, \
                     'but value conteudo was %s against %s' % (value['conteudo'], conts)
             func('um texto')
         self._action_load()
@@ -236,7 +236,8 @@ class TestPyndoramaControl(unittest.TestCase):
         self.app.remote_save()
         send.assert_any_call(ANY, ANY, ANY, ANY, "POST")
         self.app.storage.__setitem__.assert_any_call(ANY, ANY)
-        assert send.call_count == 3, 'but send count was %s' % send.call_count
+        expected_count = 2
+        assert send.call_count == expected_count, 'but send count was %s' % send.call_count
 
     def test_Menu_cenario(self):
         """test add a new scene."""
@@ -269,8 +270,8 @@ class TestPyndoramaControl(unittest.TestCase):
         def side_effect(a, b, c, d, e):
             assert a == GAMELIST, 'but url was %s' % a
             assert e == "GET"
-            #assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
-            assert d == {'_xsrf': '', 'conteudo': '[]'}, 'but data was %s' % d
+            assert d == {'_xsrf': '', 'value': []}, 'but data was %s' % d
+            #assert d == {'_xsrf': '', 'conteudo': '[]'}, 'but data was %s' % d
             self.app.games = ['jpt_0', 'g']
 
         def div_effect(a=0, b=0, c=0, s_top=0, s_display=0, s_left=0, s_width=0,

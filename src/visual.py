@@ -31,7 +31,7 @@ EICAP = ["jeppeto/Lutroforo.png", "jeppeto/Pacote.png", "jeppeto/Pote_com_bico_-
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
 STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
-STORAGE = "https://activufrj.nce.ufrj.br/storage/%s/%s/__persist__"
+STORAGE = "https://activufrj.nce.ufrj.br/storage/%s/persist__/%s"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar', 'jeppeto']
 MENU_PROP = ['apagar', 'configurar', 'pular', 'esconder', 'mostrar']
 MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular', 'esconder', 'mostrar']
@@ -39,7 +39,7 @@ MENU_TEXT = ['balao']
 DEFAULT = [
 ]
 MENU_JEPPETO = ['salvar', 'apagar_jogo']
-JEPPETOAPP, JEPPETO, LGM, NGM = "jeppeto", "__J_E_P_P_E_T_O__", 'LOAD_GAME', 'NEW_GAME'
+JEPPETOAPP, JEPPETO, LGM, NGM = "jeppeto", "j_e_p_p_e_t_o__", 'LOAD_GAME', 'NEW_GAME'
 LOADPAGE = '/rest/wiki/%s/%s'
 SAVEPAGE = '/rest/wiki/edit/%s/%s'
 NEWPAGE = '/wiki/newpage/%s?folder=%s'
@@ -594,8 +594,8 @@ class Gui(GuiDraw):
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
     def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda: None):
-        #data = dict(_xsrf=self.xsrf, value=value)
-        data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
+        data = dict(_xsrf=self.xsrf, value=self.json.dumps(value))
+        #data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
 
         def receipt(text, error="error"):
             go()
@@ -619,18 +619,18 @@ class Gui(GuiDraw):
         def receipt(text=0, error="error"):
             print('menu_salva register_value receipt', text)
         self.control.deploy(register_value)
-        value = self.json.dumps(value)
+        #value = self.json.dumps(value)
         #data = dict(_xsrf=self.xsrf, value=value)
 
-        def save_page():
-            data = dict(_xsrf=self.xsrf, conteudo=value)
-            self.send(SAVEPAGE % (self.properties, '_JPT_'+self.game), receipt, receipt, data)
-            print('menu_salva register_value', data)
-        self.storage['_JPT_'+self.game] = value
+        #def save_page():
+        #    #data = dict(_xsrf=self.xsrf, conteudo=value)
+        #    self.send(SAVEPAGE % (self.properties, '_JPT_'+self.game), receipt, receipt, data)
+        #    print('menu_salva register_value', data)
+        self.storage['_JPT_'+self.game] = self.json.dumps(value)   # value
         #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
         self._remote_save(self.games+['_JPT_'+self.game])
         #self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
-        self._remote_save([], NEWPAGE % (self.properties, JEPPETO), '_JPT_'+self.game, save_page)
+        self._remote_save(value, SAVEPAGE % (self.properties, '_JPT_'+self.game))  # , save_page)
 
     def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data=ED, method="POST"):
         def _on_sent(requisition):
@@ -649,8 +649,8 @@ class Gui(GuiDraw):
         if JEPPETO not in self.storage:
             self.storage[JEPPETO] = self.json.dumps([])
         self.games = []
-        #data = dict(_xsrf=self.xsrf, value=value)
-        data = dict(_xsrf=self.xsrf, conteudo='[]')
+        data = dict(_xsrf=self.xsrf, value=[])
+        #data = dict(_xsrf=self.xsrf, conteudo='[]')
 
         def receipt(text, error="error"):
             print('remote load receipt error', text)
@@ -659,8 +659,13 @@ class Gui(GuiDraw):
         def receive_list(text):
             games = self.json.loads(text)
             if games['status'] == 0:
-                #self.games = games['result']
-                self.games = self.json.loads(games['result']["conteudo"])
+                gamelist = games['value']
+                #self.games = self.json.loads(games['result']["conteudo"])
+                if not isinstance(gamelist, list):
+                    self.send(SAVEGAMELIST, receipt, receipt, data)
+                else:
+                    self.games = gamelist
+                print('received game list', gamelist)
             else:
                 print('sending empty game list', text)
                 self.send(SAVEGAMELIST, receipt, receipt, data)
@@ -679,18 +684,18 @@ class Gui(GuiDraw):
             self.doc["text"].style.display = "none"
             self.load()
         self.book <= lst
-        games = self.json.loads(self.storage[JEPPETO]) + self.games
-        print('start', games, len(games))
-        default_name, ask = 'Jeppeto_%d' % len(games), 'Nome do novo jogo'
-        if (ev.target.id == 'NEW_GAME') or (len(games) < 1):
+        self.games = list(set(self.json.loads(self.storage[JEPPETO])).union(set(self.games)))
+        print('start', self.games, len(self.games))
+        default_name, ask = 'Jeppeto_%d' % len(self.games), 'Nome do novo jogo'
+        if (ev.target.id == 'NEW_GAME') or (len(self.games) < 1):
             self.game = self.win.prompt(ask, default_name) or default_name
-            self.storage[JEPPETO] = self.json.dumps(games + [self.game])
+            self.storage[JEPPETO] = self.json.dumps(self.games + [self.game])
             self.storage['_JPT_'+self.game] = self.json.dumps([])
             self.start_div.style.display = 'none'
             self.doc["illumini"].style.display = "none"
             self.doc["text"].style.display = "none"
         else:
-            for game in games:
+            for game in self.games:
                 inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
                                s_fontFamily='Arial Black', s_fontSize=40)
                 inp.text = game
