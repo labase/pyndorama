@@ -212,7 +212,7 @@ class Menu(object):
         prop_size = self.gui.doc["propsize"]
         prop_size.style.backgroundColor = 'green'
         prop.style.backgroundColor = 'white'
-        self.gui.action = lambda no: None
+        self.gui.action = lambda no=0: None
         self.gui.contextmenu = lambda x, y: None
 
         def _dropend(ev):
@@ -490,7 +490,7 @@ class Gui(GuiDraw):
         self.contextmenu = self._contextmenu
         self.context_obj_id = self.lst = self.start_div = self.revoke_action = lambda x=0: None
         self.status = self.game = self.xsrf = self.properties = self.folder = self.control = None
-        self.games = []
+        self.games = self.remote_games = []
         self.commands = {}
         self.offx = self.offy = 0
 
@@ -561,10 +561,14 @@ class Gui(GuiDraw):
         def read(text):
             commands = self.json.loads(text)
             print('load read:', commands, text)
-            if commands['status'] != '0':
+            if commands['status'] != 0:
                 return not_read()
             #self.commands = commands['result']
-            cmds = self.commands = commands['conteudo']
+            cmds = self.commands = self.json.loads(commands['value'])
+            self.storage[game] = commands['value']
+            games = self.json.loads(self.storage[JEPPETO])
+            if not cmd in games:
+                self.storage[JEPPETO] = self.json.dumps([cmd] + games)
             assert isinstance(cmds, list), 'was not list but %s' % type(cmds)
             #self.json.loads(commands['conteudo'])
             for kwargs in self.commands:
@@ -593,7 +597,7 @@ class Gui(GuiDraw):
         self.storage['_JPT_'+self.game] = self.json.dumps(
             self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
 
-    def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda: None):
+    def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda t, e=0: None):
         data = dict(_xsrf=self.xsrf, value=self.json.dumps(value))
         #data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
 
@@ -628,7 +632,9 @@ class Gui(GuiDraw):
         #    print('menu_salva register_value', data)
         self.storage['_JPT_'+self.game] = self.json.dumps(value)   # value
         #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
-        self._remote_save(self.games+['_JPT_'+self.game])
+        games = list(set([self.game]).union(set(self.remote_games)))
+
+        self._remote_save(games)
         #self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
         self._remote_save(value, SAVEPAGE % (self.properties, '_JPT_'+self.game))  # , save_page)
 
@@ -637,7 +643,7 @@ class Gui(GuiDraw):
             if requisition.status == 200 or requisition.status == 0 and requisition.text:
                 record(requisition.text)
             else:
-                terr("error %d" % requisition.status, requisition.text)
+                terr("error %d" % requisition.status, requisition)
         req = self.ajax()
         req.on_complete = _on_sent
         req.set_timeout(TIMEOUT, terr)
@@ -652,23 +658,34 @@ class Gui(GuiDraw):
         data = dict(_xsrf=self.xsrf, value=[])
         #data = dict(_xsrf=self.xsrf, conteudo='[]')
 
+        def receive_post(text, error="error"):
+            print('remote post receipt text', text)
+
         def receipt(text, error="error"):
             print('remote load receipt error', text)
             self._start(ev)
 
         def receive_list(text):
+            print('received list', text)
             games = self.json.loads(text)
             if games['status'] == 0:
                 gamelist = games['value']
+                if isinstance(gamelist, str):
+                    try:
+                        gamelist = self.json.loads(gamelist)
+                    except:
+                        pass
                 #self.games = self.json.loads(games['result']["conteudo"])
                 if not isinstance(gamelist, list):
-                    self.send(SAVEGAMELIST, receipt, receipt, data)
+                    print('sending empty game not a list', gamelist, text, type(gamelist))
+                    self.send(SAVEGAMELIST, receive_post, receive_post, data)
                 else:
-                    self.games = gamelist
+                    self.remote_games = gamelist
+                    print('updated game list', self.games, gamelist)
                 print('received game list', gamelist)
             else:
                 print('sending empty game list', text)
-                self.send(SAVEGAMELIST, receipt, receipt, data)
+                self.send(SAVEGAMELIST, receive_post, receive_post, data)
             print('remote load receive list', text, self.games)
             self._start(ev)
         self.send(GAMELIST, receive_list, receipt, data, 'GET')
@@ -684,7 +701,7 @@ class Gui(GuiDraw):
             self.doc["text"].style.display = "none"
             self.load()
         self.book <= lst
-        self.games = list(set(self.json.loads(self.storage[JEPPETO])).union(set(self.games)))
+        self.games = list(set(self.json.loads(self.storage[JEPPETO])).union(set(self.remote_games)))
         print('start', self.games, len(self.games))
         default_name, ask = 'Jeppeto_%d' % len(self.games), 'Nome do novo jogo'
         if (ev.target.id == 'NEW_GAME') or (len(self.games) < 1):
@@ -696,13 +713,14 @@ class Gui(GuiDraw):
             self.doc["text"].style.display = "none"
         else:
             for game in self.games:
-                inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
-                               s_fontFamily='Arial Black', s_fontSize=40)
-                inp.text = game
-                inp.style.fontFamily = 'Arial'
-                inp.style.fontSize = '30px'
-                inp.bind('click', nameit)
-                lst <= inp
+                if not game is None:
+                    inp = self.div(lst, o_Id='_JPT_'+game, s_color='seagreen',
+                                   s_fontFamily='Arial Black', s_fontSize=40)
+                    inp.text = game
+                    inp.style.fontFamily = 'Arial'
+                    inp.style.fontSize = '30px'
+                    inp.bind('click', nameit)
+                    lst <= inp
             lst.style.display = 'block'
 
     def receive(self, url, default, deliver):

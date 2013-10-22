@@ -22,7 +22,9 @@ from visual import Gui, LOADPAGE, SAVEPAGE, NEWPAGE, GAMELIST, SAVEGAMELIST, JEP
 from mock import MagicMock, ANY
 #ITEM = 'it3m'
 
-LOAD = LOADPAGE % ('jeppeto', '_JPT__JPT_g0')
+LOAD = LOADPAGE % ('jeppeto', '_JPT_Jeppeto_1')
+
+
 class TestPyndoramaControl(unittest.TestCase):
 
     def setUp(self):
@@ -150,6 +152,7 @@ class TestPyndoramaControl(unittest.TestCase):
     def _remote_load(self):
         """fixture for loading from remote server."""
         self.br.on_complete = lambda x: None
+        self.br.text = '{"status": 0, "value": "[\"GamesInteligentesII\",\"Jeppeto_1\",\"Jeppeto_0\"]"}'
 
         def do_call():
             self.br.on_complete(self.br)
@@ -160,19 +163,30 @@ class TestPyndoramaControl(unittest.TestCase):
 
     def test_remote_load(self):
         """test load from remote server."""
+
+        def store(x, y):
+            assert x == '_JPT_Jeppeto_1', 'but storage was %s %s' % (x, y)
         self._remote_load()
-        self.br.status, self.br.text = 200, json.dumps(dict(status='0', conteudo=[LR]))
-        self.app.load('_JPT_g0')
+        self.br.status, self.br.text = 200, json.dumps(dict(status=0, value=JP0))
+        #self.app.load('_JPT_g0')
+        self.app.storage = MagicMock(name="storage")
+        self.app.storage.__setitem__ = MagicMock(name="setitem")  # , side_effect=store)
+        self.app.storage.__getitem__ = MagicMock(name="setitem", return_value="[\"Jeppeto_0\"]")
+        self.br['_JPT_Jeppeto_1'] = JP0
+        self.app.load('Jeppeto_1')
         assert self.br.on_complete
         self.br.open.assert_called_once_with('GET', LOAD, True)
         self.br.send.assert_called_once_with({})
+        assert self.app.remote_games == [], 'but remote_games was %s' % self.app.remote_games
+        self.app.storage.__setitem__.assert_called_with(JEPPETO, '["Jeppeto_1", "Jeppeto_0"]')
+        self.app.storage.__setitem__.assert_any_call('_JPT_Jeppeto_1', ANY)
 
     def test_no_remote_local_load(self):
         """test load from local on remote server denial."""
         self._remote_load()
-        self.app.storage = dict(_JPT__JPT_g0=json.dumps([LR]))
-        self.br.status, self.br.text = 404, json.dumps(dict(status='0', conteudo=[LR]))
-        self.app.load('_JPT_g0')
+        self.app.storage = dict(_JPT_Jeppeto_1=json.dumps([LR]))
+        self.br.status, self.br.text = 404, json.dumps(dict(status=0, value=[LR]))
+        self.app.load('Jeppeto_1')
         assert self.br.on_complete
         self.br.open.assert_called_once_with('GET', LOAD, True)
         self.br.send.assert_called_once_with({})
@@ -207,7 +221,7 @@ class TestPyndoramaControl(unittest.TestCase):
         #Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
         Urle = SAVEPAGE % ('jeppeto', '_JPT_Jeppeto_0')  #  '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
         Url = GAMELIST  # '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
-        conts = ['', '[]', '["_JPT_Jeppeto_0"]']
+        conts = ['', '[]', '["Jeppeto_0"]']
         urls = [Urle, NEWPAGE % ('jeppeto', '_JPT_Jeppeto_0'), Url]  # '/wiki/newpage/jeppeto?folder=', Url]
         import json
 
@@ -225,10 +239,11 @@ class TestPyndoramaControl(unittest.TestCase):
                 assert val[0] == value[0], 'but value was %s -AND- %s' % (value, val[0])
             else:
                 assert value['value'] == expect_cont, \
-                    'but value conteudo was %s against %s' % (value['conteudo'], conts)
+                    'but value conteudo was %s against %s' % (value['value'], conts)
             func('um texto')
         self._action_load()
         self.app.game = "Jeppeto_0"
+        self.app.games = ["Jeppeto_1"]
         self.app.json = self.br
         self.br.dumps = lambda x: json.dumps(x)
         self.app.storage = MagicMock(name='store', side_effect=store_effect)
@@ -292,6 +307,12 @@ if __name__ == '__main__':
     unittest.main()
 #URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
 URLJEPPETO = '/rest/wiki/activlets/__J_E_P_P_E_T_O__'
+JP0 = "[{\"o_Id\":\"o1_EICA/1_2c.jpg\",\"o_gcomp\":\"div\"}]"
+JP1 = '"[{\"o_Id\":\"o1_EICA/1_2c.jpg\",\"o_gcomp\":\"div\",' + \
+      '\"o_item\":\"EICA/1_2c.jpg\",\"o_part\":\"Locus\",\"s_background\":' + \
+      '\"url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_2c.jpg?size=G) no-repeat\",' + \
+      '\"s_backgroundSize\":\"100% 100%\",\"s_height\":800,\"s_left\":0,\"s_position\":\"absolute\",\"s_top\":0,' + \
+      '\"s_width\":1100,\"o_placeid\":\"book\"}]"'
 LR = {r's_top': 0, r's_left': 0, r'o_gcomp': r'div',
       r's_background': r'url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
       r's_width': 1100, r'o_Id': r'o1_EICA/1_1c.jpg', r'o_item': r'EICA/1_1c.jpg', r'o_part': r'Locus',
