@@ -211,6 +211,7 @@ class Menu(object):
     def _editar(self, event, prop, kwargs):
         prop_box = self.gui.doc["propbox"]
         prop_size = self.gui.doc["propsize"]
+        #print('_editar', prop_box, prop_size)
         prop_size.style.backgroundColor = 'green'
         prop.style.backgroundColor = 'white'
         self.gui.action = lambda no=0: None
@@ -220,10 +221,11 @@ class Menu(object):
             offx, offy = self.book.offsetLeft, self.book.offsetTop
 
             kwargs.update(o_text=prop.html)
-            print('_dropend', kwargs)
             self.gui.save(kwargs)
             kwargs.update(o_cmd="DoShape", o_emp=self.gui.shape, o_gcomp='shape')
+            #print('_dropend', self.gui.control.activate, ev, kwargs)
             self.gui.control.activate(**kwargs)
+            #print('_drop_final activate', ev)
             _drop_final(ev)
 
         def _drop_final(ev):
@@ -385,7 +387,7 @@ class Menu(object):
         def _prop(o_place, **kwargs):
             try:
                 kwargs.update(o_cmd="DoAdd", o_emp=self.gui.text)
-                print("menu_balao prop", kwargs)
+                #print("menu_balao prop", kwargs)
                 prop = self.gui.div('OOOOOO', **kwargs)
                 prop.oncontextmenu = self.gui.text_context
                 self._editar(ev, prop, kwargs)
@@ -591,10 +593,12 @@ class Gui(GuiDraw):
             cmd['o_placeid'] = cmd.pop('o_place').id
         elif 'o_place' in cmd:
             cmd.pop('o_place')
-        #print('save,', cmd)
         'o_emp' in cmd and cmd.pop('o_emp')
-        self.storage['_JPT_'+self.game] = self.json.dumps(
-            self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
+        payload = self.json.loads(self.storage['_JPT_'+self.game]) + [cmd]
+        #print('save,', cmd, 'save storage', payload)
+        store_load = self.json.dumps(self.json.loads(self.storage['_JPT_'+self.game]) + [cmd])
+        self.storage['_JPT_'+self.game] = store_load
+        #print('saved,', cmd)
 
     def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda t, e=0: None):
         data = dict(_xsrf=self.xsrf, value=self.json.dumps(value))

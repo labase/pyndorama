@@ -14,11 +14,14 @@ Pyndorama - Teste
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
+from operator import __setitem__
+from ossaudiodev import control_labels
 import unittest
 import model
 import json
 from visual import Builder
 from visual import Gui, LOADPAGE, SAVEPAGE, NEWPAGE, GAMELIST, SAVEGAMELIST, JEPPETO
+from defer import return_value
 from mock import MagicMock, ANY
 #ITEM = 'it3m'
 
@@ -96,6 +99,57 @@ class TestPyndoramaControl(unittest.TestCase):
             assert 2424 in kw, 'but not in %s' % kw
         self.br.DIV = MagicMock(name='div', side_effect=eff)
         self.builder.jenu.ad_cenario(self.br, self.br)
+
+    def _add_baloon(self):
+        """ adds a new baloon."""
+        mock_prop = self.mp = MagicMock(name='prop')
+        mock_prop.bind = MagicMock(name='prop_bind', side_effect=lambda ev, hook: hook(mock_prop))
+        self.control.current = self.control  # MagicMock(name='curr')  # self.br
+        mock_shape = self.app.shape = MagicMock(name='shape')
+        mc_doc = self.app.doc = MagicMock(name='doc')  # self.br
+        mc_doc.__getitem__ = MagicMock(name='doc_set', return_value=mock_prop)
+        self.br.id, self.br.o_Id, self.app.game = 'idEica01', 'idEica01', '_JPT_g0'
+
+        def eff(**kw):
+            bv, ks = set(BALOON.values()), set(kw.values())
+            assert bv < ks, 'but %s not in %s' % (bv, ks)
+            activate(**kw)
+        the_div = MagicMock(name='div')
+        the_div.html = "Lorem isum"
+        self.app.div = MagicMock(name='div_call', return_value=the_div)  # , side_effect=eff)
+        #activate, self.app.control.activate = self.app.control.activate, MagicMock(name='act', side_effect=eff)
+        self.builder.mmenu.menu_balao(self.br, self.br)
+        mock_prop.bind.assert_called_once_with('click', ANY)
+        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
+
+    def test_add_baloon(self):
+        """test adds a new baloon."""
+        mock_prop = MagicMock(name='prop')
+        #mock_store = self.app.storage = MagicMock(name='save')
+        mock_store = self.app.storage = MagicMock(name='store')
+        mock_store_get = self.app.storage.__getitem__ = MagicMock(name='store_get', return_value="[]")
+        mock_store_set = self.app.storage.__setitem__ = MagicMock(name='store_set')
+        self.app.doc.__getitem__ = MagicMock(name='doc_set', return_value=mock_prop)
+        self._add_baloon()
+
+        #assert self.app.control.activate.assert_any_called()
+        self.app.div.assert_any_called()
+        bv, ks = set(BALOON.values()), set(self.app.div.call_args[1].values())
+        assert bv < ks, 'but %s not in %s' % (bv, ks)
+        loci = self.app.control.items
+        assert len(loci) == 1, 'but items was %s' % loci
+        assert loci[0].o_Id == 'o1_balao', 'but id was %s' % loci[0].o_Id
+        self.app.doc.__getitem__.assert_any_called()
+        mock_store_get.assert_any_call('_JPT__JPT_g0')
+        mock_store_set.assert_called_once_with('_JPT__JPT_g0', ANY)
+        bv, ks = set(BALSAV.values()), mock_store_set.call_args[0][1]
+        assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
+        #assert False, 'but mc was %s' % self.mp.mock_calls
+        savargs = {}
+        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
+        loci[0].deploy(saver)
+        bv, ks = set(BALSAV.values()), set(savargs.values())
+        assert bv < ks, 'but %s not in %s' % (bv, savargs)
 
     def test_add_locus(self):
         """test adds a new locus."""
@@ -190,23 +244,6 @@ class TestPyndoramaControl(unittest.TestCase):
         assert self.br.on_complete
         self.br.open.assert_called_once_with('GET', LOAD, True)
         self.br.send.assert_called_once_with({})
-
-    def nest_action_baloon(self):
-        """test baloon action."""
-        self._action_load()
-        self.br.stopPropagation = self.br.preventDefault = self.br.nop
-        self.br.style = self.br.win = self.br
-        self.br.display = self.br.clientX = self.br.clientY = 0
-        self.br.pageXOffset = self.br.pageYOffset = 0
-        self.br.offsetTop = self.br.offsetLeft = 0
-        self.br.id = 'm_balao'
-        self.br.oncontextmenu(self.br)
-        self.br.evs[0](self.br)
-        self.control.employ = MagicMock()
-        #self.control.employ.assert_called_once_with(1,2)
-        assert isinstance(self.br.aargs, dict), 'but aarg was %s with %s' % (type(self.br.aargs), self.br.aargs)
-        assert self.br.aargs["o_Id"] == "o1_balao", 'no balao in %s' % self.br.aargs
-        pass
 
     def test_action_execute(self):
         """test execute an action."""
@@ -305,6 +342,12 @@ class TestPyndoramaControl(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+BALSAV = {'s_top': 0, 's_left': 0, 's_float': 'left', 'o_gcomp': 'text',
+          's_width': 200, 'o_Id': 'o1_balao', 'o_item': 'balao', 's_height': 150, 'o_part': 'Holder',
+          's_position': 'absolute', 'o_title': 'balao'}
+BALOON = dict(o_text='Lorem Ipsum', s_top=0, s_left=0, o_gcomp='text', s_float='left',
+              s_width=200, o_title='balao', o_item='balao', s_height=150, o_part='Holder',
+              s_position='absolute', o_cmd='DoAdd', o_Id='o1_balao')
 #URLJEPPETO = 'https://activufrj.nce.ufrj.br/storage/jeppeto/__J_E_P_P_E_T_O__/__persist__'
 URLJEPPETO = '/rest/wiki/activlets/__J_E_P_P_E_T_O__'
 JP0 = "[{\"o_Id\":\"o1_EICA/1_2c.jpg\",\"o_gcomp\":\"div\"}]"
