@@ -28,6 +28,7 @@ class Thing:
         self.items = []
         #print ("Thing init:", fab, part, o_Id)
         self.create(fab=fab, part=part, o_Id=o_Id, **kwargs)
+        self.container = self.o_part = self.o_Id = self.current = None
 
     def create(self, fab=None, part=None, o_Id=None, **kwargs):
         """Fabricate and return a given part."""
@@ -47,7 +48,7 @@ class Thing:
             thing_class = Thing.CONTROL[o_cmd]
             return thing_class(o_emp, fab=self, o_part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
-            print ("error activating %s id = %s, place %s" % (o_part, o_Id, o_place))
+            print("error activating %s id = %s, place %s" % (o_part, o_Id, o_place))
 
     def employ(self, o_part=None, o_Id=None, **kwargs):
         """Fabricate and locate a given part."""
@@ -56,7 +57,7 @@ class Thing:
             thing_class = Thing.INVENTORY[o_part]
             return thing_class(fab=self, part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
-            print ("error creating %s id = %s" % (o_part, o_Id))
+            print("error creating %s id = %s" % (o_part, o_Id))
 
     def register(self, oid, entry):
         """Append an entry to this resgistry. """

@@ -40,14 +40,15 @@ DEFAULT = [
 ]
 MENU_JEPPETO = ['salvar', 'apagar_jogo']
 JEPPETOAPP, JEPPETO, LGM, NGM = "jeppeto", "j_e_p_p_e_t_o__", 'LOAD_GAME', 'NEW_GAME'
-LOADPAGE = '/rest/wiki/%s/%s'
-SAVEPAGE = '/rest/wiki/edit/%s/%s'
-NEWPAGE = '/wiki/newpage/%s?folder=%s'
+#LOADPAGE = '/rest/wiki/%s/%s'
+#SAVEPAGE = '/rest/wiki/edit/%s/%s'
+#NEWPAGE = '/wiki/newpage/%s?folder=%s'
 #GAMELIST = STORAGE % JEPPETO
 NEWPAGE = STORAGE
 SAVEPAGE = LOADPAGE = STORAGE
 GAMELIST = LOADPAGE % (JEPPETOAPP, JEPPETO)
 SAVEGAMELIST = SAVEPAGE % (JEPPETOAPP, JEPPETO)
+EL, ED = [], {}
 
 
 class Builder:
@@ -131,7 +132,7 @@ class Menu(object):
     MENU = {}
 
     def __init__(self, gui, originator, menu=None, command='menu_',
-                 prefix=MENUPX, event="click", activate=False, extra=[]):
+                 prefix=MENUPX, event="click", activate=False, extra=EL):
         self.gui, self.item, self.prefix = gui, originator, prefix
         self.command, self.prefix, self.activated = command, prefix, activate
         self.originator = originator
@@ -152,7 +153,7 @@ class Menu(object):
             Menu.MENU[item] = Menu(self.gui, item, command='submenu_')
         return menu_item
 
-    def build_menu(self, menu=MENU_DEFAULT, display="none", extra=[]):
+    def build_menu(self, menu=MENU_DEFAULT, display="none", extra=EL):
         #print ("build_menu:", self.gui.div)
         Menu.MENU[self.originator] = self
         self.menu = self.gui.div(
@@ -464,8 +465,6 @@ class GuiDraw(object):
 KWA = dict(s_position='absolute', s_opacity=0.1, s_top=180,
            o_src=MENUPX % 'drawing', o_width=400, o_height=400)
 
-EL, ED = [], {}
-
 
 class Gui(GuiDraw):
     """Deal with incoming html events. :ref:`gui_event`
@@ -476,7 +475,7 @@ class Gui(GuiDraw):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.storage, self.json = gui.STORAGE, gui.JSON
-        self.current_menu = self.menuX = self.menuY = self.obj_id = None
+        self.rubber = self.current_menu = self.menuX = self.menuY = self.obj_id = None
         self.main = self.doc["base"]
         self.book = self.doc["book"]
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
@@ -602,11 +601,11 @@ class Gui(GuiDraw):
         #data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
 
         def receipt(text, error="error"):
-            go()
+            go('')
             print('remote save receipt error', text)
 
         def receive_list(text):
-            go()
+            go('')
             print('remote save receipt', text.split()[0])
         self.send(url, receive_list, receipt, data, "POST")
 
@@ -638,7 +637,7 @@ class Gui(GuiDraw):
         #self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
         self._remote_save(value, SAVEPAGE % (self.properties, '_JPT_'+self.game))  # , save_page)
 
-    def send(self, url, record=lambda x: '', terr=lambda x, y=0: '', data=ED, method="POST"):
+    def send(self, url, record=lambda text: None, terr=lambda text, y='': None, data=ED, method="POST"):
         def _on_sent(requisition):
             if requisition.status == 200 or requisition.status == 0 and requisition.text:
                 record(requisition.text)

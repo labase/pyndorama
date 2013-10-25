@@ -31,7 +31,7 @@ class TestPyndoramaControl(unittest.TestCase):
 
         class Brython(dict):
             def __init__(self):
-                dict.__init__(self)
+                dict.__init__({})
                 self.DOC, self.SVG, self.HTML, self.AJAX = [self]*4
                 self.doc = dict(base=self)
                 self['base'] = self['book'] = self
@@ -219,7 +219,7 @@ class TestPyndoramaControl(unittest.TestCase):
     def test_save_remote(self):
         """test save remote."""
         #Url = 'https://activufrj.nce.ufrj.br/storage/jeppeto/_JPT_Jeppeto_0/__persist__'
-        Urle = SAVEPAGE % ('jeppeto', '_JPT_Jeppeto_0')  #  '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
+        Urle = SAVEPAGE % ('jeppeto', '_JPT_Jeppeto_0')  # '/rest/wiki/edit/jeppeto/_JPT_Jeppeto_0'
         Url = GAMELIST  # '/rest/wiki/edit/activlets/__J_E_P_P_E_T_O__'
         conts = ['', '[]', '["Jeppeto_0"]']
         urls = [Urle, NEWPAGE % ('jeppeto', '_JPT_Jeppeto_0'), Url]  # '/wiki/newpage/jeppeto?folder=', Url]
