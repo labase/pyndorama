@@ -44,8 +44,8 @@ class Thing:
         """Activate a given command."""
         try:
             kwargs['o_place'] = o_place
-            #print("activate:", o_emp, o_cmd, o_part, o_Id, o_place, kwargs)
             thing_class = Thing.CONTROL[o_cmd]
+            #print("activate:", o_emp, o_cmd, o_part, o_Id, o_place, kwargs)
             return thing_class(o_emp, fab=self, o_part=o_part, o_Id=o_Id, **kwargs)
         except Exception:
             print("error activating %s id = %s, place %s" % (o_part, o_Id, o_place))
@@ -288,12 +288,12 @@ class DoShape(Command):
     """Shape current element."""
     def execute(self, employ, fab=None, part=None, o_Id=None, **kwargs):
         """Reshape current element."""
-        #print('DoShape:', o_Id, employ)
         #kwargs.update(o_gcomp='shape')
-        kwargs.pop('o_gcomp')
+        old_gcomp = kwargs.pop('o_gcomp')
         element = fab.shape(o_Id, **kwargs)
-        element.o_gcomp, old_gcomp = 'shape', kwargs.pop('o_gcomp')
+        element.o_gcomp, old_gcomp = old_gcomp, element.o_gcomp
         element.deploy(employ)
+        #print('DoShape:', o_Id, employ, kwargs)
         element.o_gcomp = old_gcomp
 
 

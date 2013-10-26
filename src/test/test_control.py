@@ -80,15 +80,18 @@ class TestPyndoramaControl(unittest.TestCase):
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
         self.gui = _Gui()
-        self.gui['adm1n'] = Gui.REV = {}
+        self.gui['adm1n'] = {}
+        Gui.REV = {}
+        self.control.ALL_THINGS = {}
+        self.control.items = []
 
     def _action_load(self):
         """load an action."""
         self.employ = MagicMock()
         self.control.activate(self.employ, **L0)
-        self.control.activate(self.gui.employ, **AM)
-        self.gui['adm1n'] = {}
-        self.control.activate(self.gui.employ, **JEP0["JAC"])
+        self.control.activate(self.employ, **AM)
+        #self.gui['adm1n'] = {}
+        self.control.activate(self.employ, **JEP0["JAC"])
 
     def _add_locus(self):
         """ adds a new locus."""
@@ -128,7 +131,8 @@ class TestPyndoramaControl(unittest.TestCase):
         self._add_baloon()
         self.builder.mmenu.menu_balao(self.br, self.br)
         self.mp.bind.assert_called_once_with('click', ANY)
-        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
+        assert len(self.control.items) == 1, 'but ALL_THINGS is %s ' % self.control.items
+        assert 'o1_balao' in self.control.items[0].o_Id, 'but ALL_THINGS is %s ' % self.control.items[0]
 
         #assert self.app.control.activate.assert_any_called()
         self.app.div.assert_any_called()
@@ -159,9 +163,6 @@ class TestPyndoramaControl(unittest.TestCase):
         self.mp.id = 'o1_balao'
         self.builder.mmenu.menu_editar(self.br, self.br)
         self.mp.bind.assert_called_once_with('click', ANY)
-        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
-
-        #assert self.app.control.activate.assert_any_called()
         self.app.div.assert_any_called()
         bv, ks = set(BALOON.values()), set(self.app.div.call_args[1].values())
         assert bv < ks, 'but %s not in %s' % (bv, ks)
@@ -212,7 +213,7 @@ class TestPyndoramaControl(unittest.TestCase):
         assert loci[0].items[0].o_Id == 'o2_Eica01', 'but id was %s' % loci[0].items[0].o_Id
         assert 'o2_Eica01' in self.br.IMG.call_args[1]['Id'], 'but call id was %s' % self.br.IMG.call_args[1]['Id']
 
-    def test_action_load(self):
+    def nest_action_load(self):
         """test load an action."""
         COMP = [dict(AM), dict(L0)]
         [i.update(o_place=None) for i in COMP]
@@ -225,7 +226,7 @@ class TestPyndoramaControl(unittest.TestCase):
         print('self.control', self.control)
         self.employ.side_effect = eff
         self.employ.assert_called_once()
-        assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
+        #assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
         things = {'o1_jeppeto/ampu.png', 'o1_EICA/1_1c.jpg', 'o1_o1_EICA/1_1c.jpg'}
         assert things <= set(self.control.ALL_THINGS.keys()), self.control.ALL_THINGS.keys()
         assert len(self.control.items) == 1, 'Not one member in items %s' % self.control.items
