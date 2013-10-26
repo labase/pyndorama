@@ -80,7 +80,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
         self.gui = _Gui()
-        self.gui['adm1n'] = {}
+        self.gui['adm1n'] = Gui.REV = {}
 
     def _action_load(self):
         """load an action."""
@@ -106,31 +106,29 @@ class TestPyndoramaControl(unittest.TestCase):
         mock_prop.bind = MagicMock(name='prop_bind', side_effect=lambda ev, hook: hook(mock_prop))
         self.control.current = self.control  # MagicMock(name='curr')  # self.br
         mock_shape = self.app.shape = MagicMock(name='shape')
-        mc_doc = self.app.doc = MagicMock(name='doc')  # self.br
-        mc_doc.__getitem__ = MagicMock(name='doc_set', return_value=mock_prop)
+        self.mc_doc = self.app.doc = MagicMock(name='doc')  # self.br
+        #mc_doc.__getitem__ = MagicMock(name='doc_set', return_value=mock_prop)
+        self.app.doc.__getitem__ = MagicMock(name='doc_set', side_effect=lambda x: self.mp)
+        mock_store = self.app.storage = MagicMock(name='store')
+        mock_store_get = self.app.storage.__getitem__ = MagicMock(name='store_get', return_value="[]")
+        mock_store_set = self.app.storage.__setitem__ = MagicMock(name='store_set')
         self.br.id, self.br.o_Id, self.app.game = 'idEica01', 'idEica01', '_JPT_g0'
 
         def eff(**kw):
             bv, ks = set(BALOON.values()), set(kw.values())
             assert bv < ks, 'but %s not in %s' % (bv, ks)
             activate(**kw)
-        the_div = MagicMock(name='div')
-        the_div.html = "Lorem isum"
-        self.app.div = MagicMock(name='div_call', return_value=the_div)  # , side_effect=eff)
+        self.the_div = MagicMock(name='div')
+        self.the_div.html = "Lorem isum"
+        self.app.div = MagicMock(name='div_call', side_effect=lambda *a, **x: self.the_div)  # , side_effect=eff)
         #activate, self.app.control.activate = self.app.control.activate, MagicMock(name='act', side_effect=eff)
-        self.builder.mmenu.menu_balao(self.br, self.br)
-        mock_prop.bind.assert_called_once_with('click', ANY)
-        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
 
     def test_add_baloon(self):
         """test adds a new baloon."""
-        mock_prop = MagicMock(name='prop')
-        #mock_store = self.app.storage = MagicMock(name='save')
-        mock_store = self.app.storage = MagicMock(name='store')
-        mock_store_get = self.app.storage.__getitem__ = MagicMock(name='store_get', return_value="[]")
-        mock_store_set = self.app.storage.__setitem__ = MagicMock(name='store_set')
-        self.app.doc.__getitem__ = MagicMock(name='doc_set', return_value=mock_prop)
         self._add_baloon()
+        self.builder.mmenu.menu_balao(self.br, self.br)
+        self.mp.bind.assert_called_once_with('click', ANY)
+        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
 
         #assert self.app.control.activate.assert_any_called()
         self.app.div.assert_any_called()
@@ -140,9 +138,40 @@ class TestPyndoramaControl(unittest.TestCase):
         assert len(loci) == 1, 'but items was %s' % loci
         assert loci[0].o_Id == 'o1_balao', 'but id was %s' % loci[0].o_Id
         self.app.doc.__getitem__.assert_any_called()
-        mock_store_get.assert_any_call('_JPT__JPT_g0')
-        mock_store_set.assert_called_once_with('_JPT__JPT_g0', ANY)
-        bv, ks = set(BALSAV.values()), mock_store_set.call_args[0][1]
+        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
+        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
+        bv, ks = set(BALSAV.values()), self.app.storage.__setitem__.call_args[0][1]
+        assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
+        #assert False, 'but mc was %s' % self.mp.mock_calls
+        savargs = {}
+        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
+        loci[0].deploy(saver)
+        bv, ks = set(BALSAV.values()), set(savargs.values())
+        assert bv < ks, 'but %s not in %s' % (bv, savargs)
+
+    def test_edit_baloon(self):
+        """test edit an existing baloon."""
+        self._add_baloon()
+        self.the_div.html = "Sic Amet"
+        self.builder.mmenu.menu_balao(self.br, self.br)
+        self.mp = MagicMock(name='edit_prop')
+        self.mp.html = "Sic Amet"
+        self.mp.id = 'o1_balao'
+        self.builder.mmenu.menu_editar(self.br, self.br)
+        self.mp.bind.assert_called_once_with('click', ANY)
+        assert 'o1_balao' in self.control.ALL_THINGS, 'but ALL_THINGS is %s ' % self.control.ALL_THINGS
+
+        #assert self.app.control.activate.assert_any_called()
+        self.app.div.assert_any_called()
+        bv, ks = set(BALOON.values()), set(self.app.div.call_args[1].values())
+        assert bv < ks, 'but %s not in %s' % (bv, ks)
+        loci = self.app.control.items
+        assert len(loci) == 1, 'but items was %s' % loci
+        assert loci[0].o_Id == 'o1_balao', 'but id was %s' % loci[0].o_Id
+        self.app.doc.__getitem__.assert_any_called()
+        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
+        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
+        bv, ks = set(list(BALSAV.values())+["Sic Amet"]), self.app.storage.__setitem__.call_args[0][1]
         assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
         #assert False, 'but mc was %s' % self.mp.mock_calls
         savargs = {}
@@ -159,8 +188,8 @@ class TestPyndoramaControl(unittest.TestCase):
         assert len(loci) == 1, 'but items was %s' % loci
         assert loci[0].o_Id == 'o1_Eica01', 'but id was %s' % loci[0].o_Id
 
-    def test_add_object(self):
-        """test adds a new holder object."""
+    def _add_object(self):
+        """adds a new holder object."""
         self._add_locus()
         self.br.id, self.app.game = 'idEica01', '_JPT_g0'
         self.app.storage = dict(_JPT__JPT_g0=json.dumps([LR]))
@@ -171,13 +200,17 @@ class TestPyndoramaControl(unittest.TestCase):
         act, self.control.activate = self.control.activate, MagicMock(name='act')
         self.control.activate.side_effect = lambda **kw: act(**kw)
         self.builder.jenu.ad_objeto(self.br, self.br)
+
+    def test_add_object(self):
+        """test adds a new holder object."""
+        self._add_object()
         self.control.activate.assert_called_any()
         #self.br.IMG.assert_called_once_with()
         loci = self.control.items
         assert len(loci) == 1, 'but items was %s' % loci
-        assert loci[0].o_Id == 'o2_Eica01', 'but id was %s' % loci[0].o_Id
-        assert loci[0].items[0].o_Id == 'o3_Eica01', 'but id was %s' % loci[0].items[0].o_Id
-        assert 'o3_Eica01' in self.br.IMG.call_args[1]['Id'], 'but call id was %s' % self.br.IMG.call_args[1]['Id']
+        assert loci[0].o_Id == 'o1_Eica01', 'but id was %s' % loci[0].o_Id
+        assert loci[0].items[0].o_Id == 'o2_Eica01', 'but id was %s' % loci[0].items[0].o_Id
+        assert 'o2_Eica01' in self.br.IMG.call_args[1]['Id'], 'but call id was %s' % self.br.IMG.call_args[1]['Id']
 
     def test_action_load(self):
         """test load an action."""
