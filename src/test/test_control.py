@@ -82,7 +82,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.gui = _Gui()
         self.gui['adm1n'] = {}
         Gui.REV = {}
-        self.control.ALL_THINGS = {}
+        self.control.ALL_THINGS = model.Thing.ALL_THINGS = {}
         self.control.items = []
 
     def _action_load(self):
@@ -152,6 +152,35 @@ class TestPyndoramaControl(unittest.TestCase):
         loci[0].deploy(saver)
         bv, ks = set(BALSAV.values()), set(savargs.values())
         assert bv < ks, 'but %s not in %s' % (bv, savargs)
+
+    def test_add_jump(self):
+        """test adds a jump action."""
+        self._add_baloon()
+        self._action_load()
+        self.app.obj_id = 'o1_EICA/1_1c.jpg'
+        self.app.act = MagicMock(name='mock_act')
+        self.builder.mmenu.pular(self.br, self.br)
+        #self.app.act.assert_any_call()
+        jump = self.control.ALL_THINGS['o1_Eica01']
+        assert len(model.Thing.ALL_THINGS) >= 1, 'but ALL_THINGS is %s ' % model.Thing.ALL_THINGS
+        assert 'o1_Eica01' in jump.o_Id, 'but ALL_THINGS o_Id is %s ' % jump.o_Id
+
+        #assert self.app.control.activate.assert_any_called()
+        self.app.act.assert_any_called()
+        bv, ks = set(JUMP.values()), set(self.app.act.call_args[1].values())
+        assert bv <= ks, 'but %s not in %s' % (bv, ks)
+        self.app.doc.__getitem__.assert_any_called()
+        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
+        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
+        bv, ks = set(JUMP.values()), self.app.storage.__setitem__.call_args[0][1]
+        assert bv <= set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
+        #assert False, 'but mc was %s' % self.mp.mock_calls
+        savargs = {}
+        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
+        jump.deploy(saver)
+        savargs.pop('o_place')
+        bv, ks = set(JUMP.values()), set(savargs.values())
+        assert bv == ks, 'but %s not in %s' % (JUMP, savargs)
 
     def test_edit_baloon(self):
         """test edit an existing baloon."""
@@ -376,6 +405,8 @@ class TestPyndoramaControl(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+JUMP = {'o_act': 'DoUp', 'o_gcomp': 'act', 'o_placeid': 'o1_EICA/1_1c.jpg', 'o_item': 'Eica01',
+        'o_part': 'Action', 'o_acomp': 'up', 'o_Id': 'o1_EICA/1_1c.jpg'}
 BALSAV = {'s_top': 0, 's_left': 0, 's_float': 'left', 'o_gcomp': 'text',
           's_width': 200, 'o_Id': 'o1_balao', 'o_item': 'balao', 's_height': 150, 'o_part': 'Holder',
           's_position': 'absolute', 'o_title': 'balao'}
