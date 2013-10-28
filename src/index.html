@@ -34,6 +34,12 @@ Pyndorama - Educational game creation
             class Brython:
                 DOC, SVG, HTML, AJAX, WIN = doc, svg, html, ajax, win
                 STORAGE, JSON, TIME = storage, json, time
+                def conf(self, question):
+                    return confirm(question)
+                def aler(self, question):
+                    return alert(question)
+                def prom(self, question):
+                    return prompt(question)
             print(doc.cookie)
             main(Brython)
         </script>

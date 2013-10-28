@@ -271,10 +271,7 @@ class Menu(object):
             o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoDel')
 
     def menu_apagar_jogo(self, ev, menu):
-        self.gui.storage['_JPT_'+self.gui.game] = self.gui.json.dumps([])
-        games = self.gui.json.loads(self.gui.storage[JEPPETO])
-        games.pop(self.gui.game)
-        self.gui.storage[JEPPETO] = games
+        self.gui.remote_delete()
 
     def menu_pular(self, ev, menu):
         self._sub_menu(ev, menu)
@@ -477,6 +474,8 @@ class Gui(GuiDraw):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.storage, self.json = gui.STORAGE, gui.JSON
+        g= gui()
+        self.alert, self.prompt, self.confirm = lambda m: g.aler(m), lambda m: g.prom(m), lambda m: g.conf(m)
         self.rubber = self.current_menu = self.menuX = self.menuY = self.obj_id = None
         self.main = self.doc["base"]
         self.book = self.doc["book"]
@@ -600,18 +599,38 @@ class Gui(GuiDraw):
         self.storage['_JPT_'+self.game] = store_load
         #print('saved,', cmd)
 
-    def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda t, e=0: None):
+    def _remote_save(self, value=EL, url=SAVEGAMELIST, nome='new_game', go=lambda t, e=0: None, nogo=None):
+        nogo = nogo or go
         data = dict(_xsrf=self.xsrf, value=self.json.dumps(value))
         #data = dict(_xsrf=self.xsrf, conteudo=self.json.dumps(value), nomepag=nome)
 
         def receipt(text, error="error"):
-            go('')
+            nogo('')
             print('remote save receipt error', text)
 
         def receive_list(text):
             go('')
             print('remote save receipt', text.split()[0])
         self.send(url, receive_list, receipt, data, "POST")
+
+    def remote_delete(self, game=None):
+        game = game or self.game
+        if not self.confirm('Tem certeza que quer remover completamente %s ?' % game):
+            return
+        games = self.remote_games
+        worked = 'Arquivo %s completamente removido com sucesso' % game
+        failed = 'Houve um erro ao tentar remover o arquivo %s' % game
+
+        def remove_local(_):
+            self.storage[JEPPETO] = self.json.dumps(games)
+            self.alert(worked)
+        if game in self.remote_games:
+            games = list(set([game]).union(set(self.remote_games)))
+            print('remote_delete', game,games )
+            games.remove(game)
+            self.storage['_JPT_'+game] = self.json.dumps([])   # value
+
+            self._remote_save(games, go=remove_local, nogo=lambda t, e=0: self.alert(failed))
 
     def remote_save(self):
         value = []

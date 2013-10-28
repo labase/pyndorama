@@ -43,6 +43,7 @@ class TestPyndoramaControl(unittest.TestCase):
                 self.__getitem__ = self.DIV = self.div = self.IMG = self.nop
                 self.div = self.img = self.deploy = self.employ = self.nop
                 self.show_front_menu = self.screen_context = self.nop
+                self.aler = self.prom = self.conf = self.nop
                 self.offsetLeft = self.offsetTop = self.menuX = self.menuY = 1
                 self.Id = self.search = ''
                 self.location = self.target = self
@@ -62,6 +63,9 @@ class TestPyndoramaControl(unittest.TestCase):
                 return self
 
             def nop(self, *args, **kwargs):
+                return self
+
+            def __call__(self, *args, **kwargs):
                 return self
 
         class _Gui(dict):
@@ -248,6 +252,25 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.open = MagicMock(name='open')
         self.br.send = MagicMock(name='send', side_effect=lambda x: do_call())
         self.app.ajax = lambda: self.br  # MagicMock()
+
+    def test_remove_game(self):
+        """remove a game locally and from remote server."""
+        self.app.alert = MagicMock(name='alert')
+        self.app.confirm = MagicMock(name='confirm', return_value=True)
+        self.app.send = MagicMock(name='send', side_effect=lambda a,b,c,d,e: b('1 2 3'))
+        self.app.remote_games = 'Jeppeto_0 Jeppeto_1 Jeppeto_2'.split()
+        self.app.game = 'Jeppeto_0'
+        self.builder.mmenu.menu_apagar_jogo(self.br, self.br)
+        #self.app.remote_delete('Jeppeto_0')
+        self.app.confirm.assert_called_once_with('Tem certeza que quer remover completamente Jeppeto_0 ?')
+        self.app.send.assert_called_once_with(SAVEGAMELIST, ANY, ANY, ANY,'POST' )
+        self.app.alert.assert_called_once_with('Arquivo Jeppeto_0 completamente removido com sucesso')
+        bv, ks = set(['Jeppeto_1', 'Jeppeto_2']), json.loads(self.app.send.call_args[0][3]['value'])
+        assert bv == set(ks), 'but %s not same as %s' % (bv, ks)
+        self.app.confirm = MagicMock(name='newconfirm')
+        self.app.remote_delete('NoNo')
+        self.app.confirm.assert_called_once_with('Tem certeza que quer remover completamente NoNo ?')
+        self.app.alert.assert_called_once_with('Arquivo Jeppeto_0 completamente removido com sucesso')
 
     def test_remote_load(self):
         """test load from remote server."""
