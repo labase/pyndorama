@@ -126,32 +126,34 @@ class TestPyndoramaControl(unittest.TestCase):
         self.app.div = MagicMock(name='div_call', side_effect=lambda *a, **x: self.the_div)  # , side_effect=eff)
         #activate, self.app.control.activate = self.app.control.activate, MagicMock(name='act', side_effect=eff)
 
+    def _result_test(self, the_item, container=None, app_op=None, item_id='o1_balao', savdict={}, extra=[]):
+        container = container or self.control.items
+        assert len(container) >= 1, 'but ALL_THINGS is %s ' % container
+        assert item_id in the_item.o_Id, 'but ALL_THINGS is %s ' % the_item
+        #assert self.app.control.activate.assert_any_called()
+        app_op = app_op or self.app.div
+        app_op.assert_any_called()
+        bv, ks = set(savdict.values()), set(app_op.call_args[1].values())
+        assert bv < ks, 'but %s not in %s' % (bv, ks)
+        #container = self.app.control.items
+        self.app.doc.__getitem__.assert_any_called()
+        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
+        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
+        bv, ks = set(list(savdict.values())+extra), self.app.storage.__setitem__.call_args[0][1]
+        assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
+        #assert False, 'but mc was %s' % self.mp.mock_calls
+        savargs = {}
+        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
+        the_item.deploy(saver)
+        bv, ks = set(savdict.values()), set(savargs.values())
+        assert bv < ks, 'but %s not in %s' % (bv, savargs)
+
     def test_add_baloon(self):
         """test adds a new baloon."""
         self._add_baloon()
         self.builder.mmenu.menu_balao(self.br, self.br)
         self.mp.bind.assert_called_once_with('click', ANY)
-        assert len(self.control.items) == 1, 'but ALL_THINGS is %s ' % self.control.items
-        assert 'o1_balao' in self.control.items[0].o_Id, 'but ALL_THINGS is %s ' % self.control.items[0]
-
-        #assert self.app.control.activate.assert_any_called()
-        self.app.div.assert_any_called()
-        bv, ks = set(BALOON.values()), set(self.app.div.call_args[1].values())
-        assert bv < ks, 'but %s not in %s' % (bv, ks)
-        loci = self.app.control.items
-        assert len(loci) == 1, 'but items was %s' % loci
-        assert loci[0].o_Id == 'o1_balao', 'but id was %s' % loci[0].o_Id
-        self.app.doc.__getitem__.assert_any_called()
-        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
-        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
-        bv, ks = set(BALSAV.values()), self.app.storage.__setitem__.call_args[0][1]
-        assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
-        #assert False, 'but mc was %s' % self.mp.mock_calls
-        savargs = {}
-        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
-        loci[0].deploy(saver)
-        bv, ks = set(BALSAV.values()), set(savargs.values())
-        assert bv < ks, 'but %s not in %s' % (bv, savargs)
+        self._result_test(the_item=self.app.control.items[0], savdict=BALSAV)
 
     def test_add_jump(self):
         """test adds a jump action."""
@@ -162,25 +164,8 @@ class TestPyndoramaControl(unittest.TestCase):
         self.builder.mmenu.pular(self.br, self.br)
         #self.app.act.assert_any_call()
         jump = self.control.ALL_THINGS['o1_Eica01']
-        assert len(model.Thing.ALL_THINGS) >= 1, 'but ALL_THINGS is %s ' % model.Thing.ALL_THINGS
-        assert 'o1_Eica01' in jump.o_Id, 'but ALL_THINGS o_Id is %s ' % jump.o_Id
-
-        #assert self.app.control.activate.assert_any_called()
-        self.app.act.assert_any_called()
-        bv, ks = set(JUMP.values()), set(self.app.act.call_args[1].values())
-        assert bv <= ks, 'but %s not in %s' % (bv, ks)
-        self.app.doc.__getitem__.assert_any_called()
-        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
-        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
-        bv, ks = set(JUMP.values()), self.app.storage.__setitem__.call_args[0][1]
-        assert bv <= set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
-        #assert False, 'but mc was %s' % self.mp.mock_calls
-        savargs = {}
-        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
-        jump.deploy(saver)
-        savargs.pop('o_place')
-        bv, ks = set(JUMP.values()), set(savargs.values())
-        assert bv == ks, 'but %s not in %s' % (JUMP, savargs)
+        self._result_test(the_item=jump, container=model.Thing.ALL_THINGS, app_op=self.app.act,
+                          item_id='o1_Eica01', savdict=JUMP)
 
     def test_edit_baloon(self):
         """test edit an existing baloon."""
@@ -192,23 +177,9 @@ class TestPyndoramaControl(unittest.TestCase):
         self.mp.id = 'o1_balao'
         self.builder.mmenu.menu_editar(self.br, self.br)
         self.mp.bind.assert_called_once_with('click', ANY)
-        self.app.div.assert_any_called()
-        bv, ks = set(BALOON.values()), set(self.app.div.call_args[1].values())
-        assert bv < ks, 'but %s not in %s' % (bv, ks)
-        loci = self.app.control.items
-        assert len(loci) == 1, 'but items was %s' % loci
-        assert loci[0].o_Id == 'o1_balao', 'but id was %s' % loci[0].o_Id
-        self.app.doc.__getitem__.assert_any_called()
-        self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
-        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
-        bv, ks = set(list(BALSAV.values())+["Sic Amet"]), self.app.storage.__setitem__.call_args[0][1]
-        assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
-        #assert False, 'but mc was %s' % self.mp.mock_calls
-        savargs = {}
-        saver = MagicMock(name='saver', side_effect=lambda **kw: savargs.update(kw))
-        loci[0].deploy(saver)
-        bv, ks = set(BALSAV.values()), set(savargs.values())
-        assert bv < ks, 'but %s not in %s' % (bv, savargs)
+        baloon=self.app.control.items[0]
+        self._result_test(the_item=baloon, container=self.app.control.items,
+                          item_id='o1_balao', savdict=BALSAV, extra=["Sic Amet"] )
 
     def test_add_locus(self):
         """test adds a new locus."""
