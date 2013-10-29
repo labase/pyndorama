@@ -253,18 +253,20 @@ class Menu(object):
         prop.onclick = lambda ev: ev.stopPropagation()
 
     def menu_esconder(self, ev, menu):
-        def delete(o_item, o_Id, **kwargs):
+        def hide(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
-            self.gui.doc[o_Id].style.opacity = '0.1'
+            if o_Id in self.gui.doc:
+                self.gui.doc[o_Id].style.opacity = '0.1'
             kwargs.update(o_cmd='DoShape', o_Id=o_Id, o_gcomp='shape', s_opacity='0.1')
             self.gui.save(kwargs)
         self.gui.control.activate(
-            o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoShape', o_gcomp='shape')
+            o_emp=hide, o_Id=self.gui.obj_id, o_cmd='DoShape', o_gcomp='shape', s_opacity='0.1')
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
             #print('thumb', self.prefix, kwargs)
-            self.gui.doc[o_Id].style.display = 'none'
+            if o_Id in self.gui.doc:
+                self.gui.doc[o_Id].style.display = 'none'
             kwargs.update(o_cmd='DoDel', o_Id=o_Id, o_gcomp='delete')
             self.gui.save(kwargs)
         self.gui.control.activate(
@@ -557,13 +559,13 @@ class Gui(GuiDraw):
 
         def not_read(x=0, text=1):
             self.commands = self.json.loads(self.storage[game])
-            print('load not read:', x, text, game, self.commands, self.storage[game])
+            print('load not read:', x, text, game, self.commands)
             for kwargs in self.commands:
                 render(**kwargs)
 
         def read(text):
             commands = self.json.loads(text)
-            print('load read:', commands, text)
+            print('load read:', commands)  # , text)
             if commands['status'] != 0:
                 return not_read()
             #self.commands = commands['result']

@@ -81,13 +81,15 @@ class Thing:
     def shape(self, o_Id, **kwargs):
         """Set member as current. """
         shaped = Thing.ALL_THINGS[o_Id]
+        [kwargs.pop(prop) for prop in 'o_placeid o_place o_gcomp o_item o_part'.split() if prop in kwargs]
+        print("Set member as current. ", kwargs)
         shaped._add_properties(**kwargs)
         return shaped
 
     def delete(self, o_Id, employ):
         """Set member as current. """
         deleted = Thing.ALL_THINGS[o_Id]
-        deleted.deploy(employ)
+        deleted.undeploy(employ)
         oid = deleted.o_placeid if hasattr(deleted, "o_placeid") else deleted.o_place.Id
         Thing.ALL_THINGS[oid].remove(deleted)
         del Thing.ALL_THINGS[o_Id]
@@ -131,6 +133,13 @@ class Holder(Thing):
         self.o_part, kwargs['o_Id'] = self.__class__.__name__, o_Id
         (fab or self).register(o_Id, self)
         self._add_properties(**kwargs)
+
+    def undeploy(self, employ=None, **kwargs):
+        """Deploy this thing at a certain site. """
+        for item in self.items:
+            item.deploy(employ=employ, **kwargs)
+        employ(**{argument: getattr(self, argument)
+                  for argument in dir(self) if argument[:2] in "o_ s_"})
 
     def deploy(self, employ=None, **kwargs):
         """Deploy this thing at a certain site. """
@@ -295,7 +304,7 @@ class DoShape(Command):
         element = fab.shape(o_Id, **kwargs)
         element.o_gcomp, old_gcomp = old_gcomp, element.o_gcomp
         element.deploy(employ)
-        #print('DoShape:', o_Id, employ, kwargs)
+        print('DoShape:', o_Id, employ, old_gcomp, element.o_gcomp, kwargs)
         element.o_gcomp = old_gcomp
 
 
