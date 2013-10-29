@@ -14,18 +14,16 @@ Pyndorama - Teste
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
-from operator import __setitem__
-from ossaudiodev import control_labels
 import unittest
 import model
 import json
 from visual import Builder
 from visual import Gui, LOADPAGE, SAVEPAGE, NEWPAGE, GAMELIST, SAVEGAMELIST, JEPPETO
-from defer import return_value
 from mock import MagicMock, ANY
 #ITEM = 'it3m'
 
 LOAD = LOADPAGE % ('jeppeto', '_JPT_Jeppeto_1')
+ED, EL = {}, []
 
 
 class TestPyndoramaControl(unittest.TestCase):
@@ -72,7 +70,7 @@ class TestPyndoramaControl(unittest.TestCase):
 
             def employ(self, **kwargs):
                 print('setUp employ')
-                self['adm1n'].update(kwargs)
+                #self['adm1n'].update(kwargs)
                 return 'adm1n', 1
 
         self.control = model.init()
@@ -80,6 +78,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self.br.dumps = json.dumps
         self.br.loads = json.loads
         self.app = Gui(self.br)
+        self.app._locate = self.app._filter = MagicMock(name='locate')
         self.app.menuX = self.app.menuY = 1
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
@@ -120,17 +119,12 @@ class TestPyndoramaControl(unittest.TestCase):
         mock_store_get = self.app.storage.__getitem__ = MagicMock(name='store_get', return_value="[]")
         mock_store_set = self.app.storage.__setitem__ = MagicMock(name='store_set')
         self.br.id, self.br.o_Id, self.app.game = 'idEica01', 'idEica01', '_JPT_g0'
-
-        def eff(**kw):
-            bv, ks = set(BALOON.values()), set(kw.values())
-            assert bv < ks, 'but %s not in %s' % (bv, ks)
-            activate(**kw)
         self.the_div = MagicMock(name='div')
         self.the_div.html = "Lorem isum"
         self.app.div = MagicMock(name='div_call', side_effect=lambda *a, **x: self.the_div)  # , side_effect=eff)
         #activate, self.app.control.activate = self.app.control.activate, MagicMock(name='act', side_effect=eff)
 
-    def _result_test(self, the_item, container=None, app_op=None, item_id='o1_balao', savdict={}, extra=[]):
+    def _result_test(self, the_item, container=None, app_op=None, item_id='o1_balao', savdict=ED, extra=EL):
         container = container or self.control.items
         assert len(container) >= 1, 'but ALL_THINGS is %s ' % container
         assert item_id in the_item.o_Id, 'but item id is %s but given is %s ' % (the_item.o_Id, item_id)
@@ -201,10 +195,11 @@ class TestPyndoramaControl(unittest.TestCase):
         self.builder.mmenu.pular(self.br, self.br)
         #self.app.act.assert_any_call()
         #jump = self.control.ALL_THINGS['o1_Eica01']
-        calls = [{'o1_'+place},{'o1_jeppeto/ampu.png'},{'o1_EICA/1_1c.jpg'}]
-        def save(o_Id= '',**kwargs):
+        calls = [{'o1_'+place}, {'o1_jeppeto/ampu.png'}, {'o1_EICA/1_1c.jpg'}]
+
+        def save(o_Id='', **kwargs):
             _id = calls.pop()
-            assert _id == set([o_Id]), 'but id %s was not %s' % (_id, set([o_Id]))
+            assert _id == {o_Id}, 'but id %s was not %s' % (_id, {o_Id})
 
         employ = MagicMock(name='mock_save', side_effect=save)
         self.control.deploy(employ)
@@ -212,7 +207,7 @@ class TestPyndoramaControl(unittest.TestCase):
         employ_calls = employ.call_args_list
         #self.app.act.assert_any_call()
         #self.app.save.assert_called_once_with()
-        assert self.control.current.o_Id =='o1_EICA/1_1c.jpg', 'but current id was %s' % self.control.current.o_Id
+        assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'but current id was %s' % self.control.current.o_Id
         #assert employ_calls == '', 'but employ_calls was %s' % str(employ_calls)
 
     def test_edit_baloon(self):
@@ -225,9 +220,9 @@ class TestPyndoramaControl(unittest.TestCase):
         self.mp.id = 'o1_balao'
         self.builder.mmenu.menu_editar(self.br, self.br)
         self.mp.bind.assert_called_once_with('click', ANY)
-        baloon=self.app.control.items[0]
+        baloon = self.app.control.items[0]
         self._result_test(the_item=baloon, container=self.app.control.items,
-                          item_id='o1_balao', savdict=BALSAV, extra=["Sic Amet"] )
+                          item_id='o1_balao', savdict=BALSAV, extra=["Sic Amet"])
 
     def test_add_locus(self):
         """test adds a new locus."""
@@ -301,15 +296,15 @@ class TestPyndoramaControl(unittest.TestCase):
         """remove a game locally and from remote server."""
         self.app.alert = MagicMock(name='alert')
         self.app.confirm = MagicMock(name='confirm', return_value=True)
-        self.app.send = MagicMock(name='send', side_effect=lambda a,b,c,d,e: b('1 2 3'))
+        self.app.send = MagicMock(name='send', side_effect=lambda a, b, c, d, e: b('1 2 3'))
         self.app.remote_games = 'Jeppeto_0 Jeppeto_1 Jeppeto_2'.split()
         self.app.game = 'Jeppeto_0'
         self.builder.mmenu.menu_apagar_jogo(self.br, self.br)
         #self.app.remote_delete('Jeppeto_0')
         self.app.confirm.assert_called_once_with('Tem certeza que quer remover completamente Jeppeto_0 ?')
-        self.app.send.assert_called_once_with(SAVEGAMELIST, ANY, ANY, ANY,'POST' )
+        self.app.send.assert_called_once_with(SAVEGAMELIST, ANY, ANY, ANY, 'POST')
         self.app.alert.assert_called_once_with('Arquivo Jeppeto_0 completamente removido com sucesso')
-        bv, ks = set(['Jeppeto_1', 'Jeppeto_2']), json.loads(self.app.send.call_args[0][3]['value'])
+        bv, ks = {'Jeppeto_1', 'Jeppeto_2'}, json.loads(self.app.send.call_args[0][3]['value'])
         assert bv == set(ks), 'but %s not same as %s' % (bv, ks)
         self.app.confirm = MagicMock(name='newconfirm')
         self.app.remote_delete('NoNo')
@@ -351,7 +346,7 @@ class TestPyndoramaControl(unittest.TestCase):
         self._action_load()
         self.gui['adm1n'] = {}
         self.control.activate(o_emp=self.gui.employ, o_Id="o1_jeppeto/ampu.png", o_cmd='DoExecute')
-        assert False, 'no admin in %s' % self.gui['adm1n']
+        #assert False, 'no admin in %s' % self.gui['adm1n']
         assert self.gui['adm1n']["o_Id"] == "o1_EICA/1_1c.jpg", 'no admin in %s' % self.gui['adm1n']
         assert self.gui['adm1n']["o_gcomp"] == "up", 'no admin in %s' % self.gui['adm1n']
 
@@ -414,6 +409,7 @@ class TestPyndoramaControl(unittest.TestCase):
         event = MagicMock(name='event')
         div_eff = MagicMock(name='div_effect')
         self.br = MagicMock(name='gui')
+        self.br.__le__ = MagicMock()
         self.br.JSON.loads = lambda x=0: ['a_game']
         self.app = Gui(self.br)
         ids = [
@@ -436,6 +432,7 @@ class TestPyndoramaControl(unittest.TestCase):
         #self.app._remote_load = MagicMock(name='rl', side_effect=side_effect)
         self.app.send = MagicMock(name='send', side_effect=side_effect)
         self.app.div = MagicMock(name='div', side_effect=div_effect)
+        self.app.img = MagicMock(name='img')
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
         self.app.start(event)
@@ -492,9 +489,9 @@ JEP0 = dict(
          "o_act": "DoUp", "o_acomp": "up", "o_item": "o1_EICA/1_1c.jpg", "o_placeid": "o1_jeppeto/ampu.png"}
 )
 JSON_LOADER = [
-    dict(s_top=0, s_left=0, o_gcomp='div', s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
+    dict(s_background='url(https://activufrj.nce.ufrj.br/rest/studio/EICA/1_1c.jpg?size=G) no-repeat',
          s_width=1100, o_placeid='book', o_item='EICA/1_1c.jpg', o_part='Locus', s_height=800, s_position='absolute',
-         s_backgroundSize='100% 100%', o_Id='o1_EICA/1_1c.jpg'),
+         s_backgroundSize='100% 100%', s_top=0, s_left=0, o_gcomp='div', o_Id='o1_EICA/1_1c.jpg'),
     dict(s_top=187, s_left=444, o_gcomp='img', s_float='left', o_placeid='o1_EICA/1_1c.jpg', o_item='jeppeto/ampu.png',
          o_part='Holder', s_position='absolute', o_title='jeppeto/ampu.png',
          o_src='https: //activufrj.nce.ufrj.br/rest/studio/jeppeto/ampu.png?size=G', o_Id='o1_jeppeto/ampu.png'),

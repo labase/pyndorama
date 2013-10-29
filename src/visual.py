@@ -479,13 +479,13 @@ class Gui(GuiDraw):
         self.doc, self.svg, self.html = gui.DOC, gui.SVG, gui.HTML
         self.ajax, self.win, self.time = gui.AJAX, gui.WIN, gui.TIME
         self.storage, self.json = gui.STORAGE, gui.JSON
-        g= gui()
+        g = gui()
         self.alert, self.prompt, self.confirm = lambda m: g.aler(m), lambda m: g.prom(m), lambda m: g.conf(m)
         self.rubber = self.current_menu = self.menuX = self.menuY = self.obj_id = None
         self.main = self.doc["base"]
         self.book = self.doc["book"]
         #self.comm = dict(act_rubber=self.act_rubber, scenes=self.scenes, props=self.props)
-        self.rubber_start = self.build_rubberband()
+        #self.rubber_start = self.build_rubberband()
         self.deliverables = dict(
             div=self.div, iframe=self.iframe, sprite=self.sprite, text=self.text,
             drag=self.build_drag, drop=self.build_drop, shape=self.shape,
@@ -629,13 +629,13 @@ class Gui(GuiDraw):
         def remove_local(_):
             self.alert(worked)
         if game in self.remote_games:
-            games = list(set([game]).union(set(self.remote_games)))
-            print('remote_delete', game,games )
+            games = list({game}.union(set(self.remote_games)))
+            print('remote_delete', game, games)
             games.remove(game)
             self._remote_save(games, go=remove_local, nogo=lambda t, e=0: self.alert(failed))
         if game in self.games:
-            games = list(set([game]).union(set(self.games)))
-            print('local_delete', game,games )
+            games = list({game}.union(set(self.games)))
+            print('local_delete', game, games)
             games.remove(game)
             self.storage['_JPT_'+game] = self.json.dumps([])   # value
             self.storage[JEPPETO] = self.json.dumps(games)
@@ -662,7 +662,7 @@ class Gui(GuiDraw):
         #    print('menu_salva register_value', data)
         self.storage['_JPT_'+self.game] = self.json.dumps(value)   # value
         #self.gui.send(STORAGE % ('_JPT_'+self.gui.game), receipt, receipt, data)
-        games = list(set([self.game]).union(set(self.remote_games)))
+        games = list({self.game}.union(set(self.remote_games)))
 
         self._remote_save(games)
         #self._remote_save([], NEWPAGE % (self.properties, self.folder), '_JPT_'+self.game, save_page)
