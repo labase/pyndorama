@@ -321,7 +321,7 @@ class Menu(object):
 
     def pular(self, ev, menu):
         menu_id = ev.target.id[2:]
-        oid = self.make_id(menu_id)
+        oid = self.make_id(self.gui.obj_id)
         kwargs = dict(
             o_emp=self.gui.act, o_cmd="DoAdd", o_part="Action", o_Id=oid,
             o_gcomp='act', o_act='DoUp', o_acomp='up',
@@ -417,8 +417,11 @@ class GuiDraw(object):
         #print(args)
         return {k[2:]: value for k, value in args.items() if k[:2] in "s_"}
 
+    def nact(self, o_item, **kwargs):
+        self.doc[o_item].onclick = self.action
+
     def act(self, o_Id, **kwargs):
-        self.doc[o_Id].onclick = self.action
+        self.doc['_'.join(o_Id.split('_')[1:])].onclick = self.action
 
     def up(self, o_Id, **kwargs):
         print('up', kwargs)
@@ -622,15 +625,18 @@ class Gui(GuiDraw):
         failed = 'Houve um erro ao tentar remover o arquivo %s' % game
 
         def remove_local(_):
-            self.storage[JEPPETO] = self.json.dumps(games)
             self.alert(worked)
         if game in self.remote_games:
             games = list(set([game]).union(set(self.remote_games)))
             print('remote_delete', game,games )
             games.remove(game)
-            self.storage['_JPT_'+game] = self.json.dumps([])   # value
-
             self._remote_save(games, go=remove_local, nogo=lambda t, e=0: self.alert(failed))
+        if game in self.games:
+            games = list(set([game]).union(set(self.games)))
+            print('local_delete', game,games )
+            games.remove(game)
+            self.storage['_JPT_'+game] = self.json.dumps([])   # value
+            self.storage[JEPPETO] = self.json.dumps(games)
 
     def remote_save(self):
         value = []

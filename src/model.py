@@ -136,6 +136,8 @@ class Holder(Thing):
         """Deploy this thing at a certain site. """
         employ(**{argument: getattr(self, argument)
                   for argument in dir(self) if argument[:2] in "o_ s_"})
+        for item in self.items:
+            item.deploy(employ=employ, **kwargs)
 
     def execute(self, employ=None, **kwargs):
         """Execute a given action. """
@@ -155,8 +157,8 @@ class Action(Holder):
         """Deploy this thing at a certain site. """
         args = {argument: getattr(self, argument)
                 for argument in dir(self) if argument[:2] in "o_ s_"}
-        args.update(o_Id=self.o_placeid)
-        #print("Action deploy", args)
+        #args.update(o_Id=self.o_placeid)
+        #print("Action deploy", args, Thing.ALL_THINGS[self.o_placeid].items)
         employ(**args)
 
     def execute(self, employ=None, **kwargs):
