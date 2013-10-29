@@ -136,13 +136,14 @@ class TestPyndoramaControl(unittest.TestCase):
         assert item_id in the_item.o_Id, 'but item id is %s but given is %s ' % (the_item.o_Id, item_id)
         #assert self.app.control.activate.assert_any_called()
         app_op = app_op or self.app.div
-        app_op.assert_any_called()
-        bv, ks = set(savdict.values()), set(app_op.call_args[1].values())
-        assert bv < ks, 'but %s not in %s' % (bv, ks)
+        if savdict != {}:
+            app_op.assert_any_called()
+            bv, ks = set(savdict.values()), set(app_op.call_args[1].values())
+            assert bv < ks, 'but %s not in %s' % (bv, ks)
         #container = self.app.control.items
         self.app.doc.__getitem__.assert_any_called()
         self.app.storage.__getitem__.assert_any_call('_JPT__JPT_g0')
-        self.app.storage.__setitem__.assert_called_once_with('_JPT__JPT_g0', ANY)
+        self.app.storage.__setitem__.assert_any_call('_JPT__JPT_g0', ANY)
         bv, ks = set(list(savdict.values())+extra), self.app.storage.__setitem__.call_args[0][1]
         assert bv < set(json.loads(ks)[0].values()), 'but %s not in %s' % (bv, set(json.loads(ks)[0].values()))
         #assert False, 'but mc was %s' % self.mp.mock_calls
@@ -177,14 +178,15 @@ class TestPyndoramaControl(unittest.TestCase):
         self._add_baloon()
         self._action_load()
         self.app.obj_id = 'o1_EICA/1_1c.jpg'
-        self.app.act = MagicMock(name='mock_act')
+        self.app.shape = MagicMock(name='mock_act')
         self.builder.mmenu.menu_esconder(self.br, self.br)
         #self.app.act.assert_any_call()
         item_id = 'o1_jeppeto/ampu.png'
         #assert False, 'items %s things %s' % (self.control.items[0].items[0], self.control.ALL_THINGS)
         jump = self.control.items[0].items[0]
-        self._result_test(the_item=jump, container=model.Thing.ALL_THINGS, app_op=self.app.shape,
-                          item_id=item_id, savdict=JUMP)
+        self._result_test(the_item=jump, container=model.Thing.ALL_THINGS, app_op=self.app.shape, item_id=item_id,
+                          extra=['o1_EICA/1_1c.jpg', '0.1', 'Holder', 'jeppeto/ampu.png',
+                                 'shape', 'absolute', 'DoShape', 'o1_jeppeto/ampu.png'])
 
     def test_save_action(self):
         """test saves a jump action."""
