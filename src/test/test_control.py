@@ -133,7 +133,7 @@ class TestPyndoramaControl(unittest.TestCase):
     def _result_test(self, the_item, container=None, app_op=None, item_id='o1_balao', savdict={}, extra=[]):
         container = container or self.control.items
         assert len(container) >= 1, 'but ALL_THINGS is %s ' % container
-        assert item_id in the_item.o_Id, 'but ALL_THINGS is %s ' % the_item
+        assert item_id in the_item.o_Id, 'but item id is %s but given is %s ' % (the_item.o_Id, item_id)
         #assert self.app.control.activate.assert_any_called()
         app_op = app_op or self.app.div
         app_op.assert_any_called()
@@ -170,6 +170,20 @@ class TestPyndoramaControl(unittest.TestCase):
         item_id = 'o1_o1_EICA/1_1c.jpg'
         jump = self.control.ALL_THINGS[item_id]
         self._result_test(the_item=jump, container=model.Thing.ALL_THINGS, app_op=self.app.act,
+                          item_id=item_id, savdict=JUMP)
+
+    def test_add_hide(self):
+        """test adds a hide action."""
+        self._add_baloon()
+        self._action_load()
+        self.app.obj_id = 'o1_EICA/1_1c.jpg'
+        self.app.act = MagicMock(name='mock_act')
+        self.builder.mmenu.menu_esconder(self.br, self.br)
+        #self.app.act.assert_any_call()
+        item_id = 'o1_jeppeto/ampu.png'
+        #assert False, 'items %s things %s' % (self.control.items[0].items[0], self.control.ALL_THINGS)
+        jump = self.control.items[0].items[0]
+        self._result_test(the_item=jump, container=model.Thing.ALL_THINGS, app_op=self.app.shape,
                           item_id=item_id, savdict=JUMP)
 
     def test_save_action(self):

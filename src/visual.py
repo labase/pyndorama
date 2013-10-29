@@ -259,7 +259,7 @@ class Menu(object):
             kwargs.update(o_cmd='DoShape', o_Id=o_Id, o_gcomp='shape', s_opacity='0.1')
             self.gui.save(kwargs)
         self.gui.control.activate(
-            o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoShape')
+            o_emp=delete, o_Id=self.gui.obj_id, o_cmd='DoShape', o_gcomp='shape')
 
     def menu_apagar(self, ev, menu):
         def delete(o_item, o_Id, **kwargs):
@@ -310,7 +310,7 @@ class Menu(object):
 
     def mostrar(self, ev, menu):
         menu_id = ev.target.id[2:]
-        oid = self.make_id(menu_id)
+        oid = self.make_id(self.gui.obj_id)
         kwargs = dict(
             o_emp=self.gui.act, o_cmd="DoAdd", o_part="Action", o_Id=oid,
             o_gcomp='act', o_act='DoShape', o_acomp='shape', s_opacity='1.0',
