@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><!--
 
 ############################################################
-Pyndorama - Educational game creation
+Pyndorama - Educational game creation - Pyany branch
 ############################################################
 
 :Author: *Carlo E. T. Oliveira*
@@ -14,7 +14,7 @@ Pyndorama - Educational game creation
 -->
 <html>
     <head>
-        <meta charset="iso-8859-1">
+        <meta charset="UTF-8">
         <title>Pyndorama</title>
         <meta http-equiv="content-type" content="application/xml;charset=utf-8" />
         <link rel="shortcut icon" href="view/favicon.ico" type="image/x-icon" />
@@ -22,7 +22,7 @@ Pyndorama - Educational game creation
         <style>
         .hidden_display { display :none;}
         </style>
-        <script type="text/javascript" src="http://dl.dropboxusercontent.com/u/1751704/labase/lib/brython.js"></script>
+        <script type="text/javascript" src="https://dl.dropboxusercontent.com/u/1751704/labase/lib/brython.js"></script>
         <script type="text/python" src="control.py">
         </script>
         <script type="text/python">
@@ -34,6 +34,13 @@ Pyndorama - Educational game creation
             class Brython:
                 DOC, SVG, HTML, AJAX, WIN = doc, svg, html, ajax, win
                 STORAGE, JSON, TIME = storage, json, time
+                def conf(self, question):
+                    return confirm(question)
+                def aler(self, question):
+                    return alert(question)
+                def prom(self, question):
+                    return prompt(question)
+            print(doc.cookie)
             main(Brython)
         </script>
     </head>
@@ -46,16 +53,32 @@ Pyndorama - Educational game creation
              style="position: absolute; background-color: black; opacity: 0.4"></div>
         <!-- -->
         <div id="book" class="book">
-            <div id="text" class="text"></div>
-            <div id="illumini" class="illumini"></div>
-            <div id="subtext" class="subtext">
-                <div id="f0" class="fleet" style= "float: left; margin: 10px;"></div>
-                <div id="f1" class="fleet" style= "float: left; margin: 10px;"></div>
-                <div id="f2" class="fleet" style= "float: left; margin: 10px;"></div>
-                <div id="f3" class="fleet" style= "float: left; margin: 10px;"></div>
-                <div id="f4" class="fleet" style= "float: left; margin: 10px;"></div>
-                <div id="f5" class="fleet" style= "float: left; margin: 10px;"></div>
+
+            <div id="text" class="text">
+                <img src="http://dl.dropboxusercontent.com/u/1751704/labase/pyndorama/jeppetoc.png" width="500px"/>
             </div>
+            <div id="illumini" class="illumini">
+                <em>Come andò che maestro Ciliegia, falegname, trovò un
+pezzo di legno, che piangeva e rideva come un bambino.</em><br/><br/><br/>
+C’era una volta...<br/><br/>
+– Un re! – diranno subito i miei piccoli lettori.
+No, ragazzi, avete sbagliato. C’era una volta un pezzo
+di legno.<br/><br/>
+Non era un legno di lusso, ma un semplice pezzo da
+catasta, di quelli che d’inverno si mettono nelle stufe e
+nei caminetti per accendere il fuoco e per riscaldare le
+stanze.<br/><br/>
+Non so come andasse, ma il fatto gli è che un bel
+giorno questo pezzo di legno capitò nella bottega di un
+vecchio falegname, il quale aveva nome mastr’Antonio,
+se non che tutti lo chiamavano maestro Ciliegia, per via
+della punta del suo naso, che era sempre lustra e
+paonazza, come una ciliegia matura.<br/><br/>
+Appena maestro Ciliegia ebbe visto quel pezzo di
+legno, si rallegrò tutto e dandosi una fregatina di mani
+per la contentezza, borbottò a mezza voce:<br/><br/>
+– Questo legno è capitato a tempo: voglio servirmene
+per fare una gamba di tavolino.</div>
 
         </div>
         <!-- -->

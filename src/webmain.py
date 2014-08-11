@@ -30,7 +30,8 @@ IMGS = DIR + 'view/'
 @view(DIR+'view/index')
 def main():
     try:
-        doc_id, doc_rev = database.DRECORD.save({'type': 'Pyndorama', 'date': str(datetime.now())})
+        #doc_id, doc_rev = database.DRECORD.save({'type': 'Pyndorama', 'date': str(datetime.now())})
+        doc_id = "umidqualquer"
         return dict(doc_id=doc_id)
     except Exception:
         return "Error in Database %s" % str([r for r in database.DRECORD])
@@ -135,6 +136,7 @@ def record_end():
 
 
 if __name__ == "__main__":
-    run(server='gunicorn', host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=True, workers=1)
+    #run(server='gunicorn', host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=True, workers=1)
+    run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=True, workers=1)
 
 app = bottle.default_app()
