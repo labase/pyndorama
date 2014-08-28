@@ -14,55 +14,43 @@ Pyndorama - Main - Pyany branch
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
-from os import environ
-#from couchdb import Server
-
-URL = environ.get('CLOUDANT_URL')
-_DOCBASES = ['keystore']
-
-
-class Server:
-
-    def __init__(self, url=URL):
-        pass
+from tinydb import TinyDB, where
+#from tinydb.storages import MemoryStorage
+from uuid import uuid1
+#DBM = lambda :TinyDB(storage=MemoryStorage)
+DBF = lambda: TinyDB('/home/cetoli/dev/dbs/voa.json')
 
 
-class Activ(Server):
-    """Active database"""
-    keystore = {}
+class Banco:
+    def __init__(self, base=DBF):
+        self.banco = base()
 
-    def __init__(self, url=URL):
-        Server.__init__(self, url)
-        act = self
-        """
-        test_and_create = lambda doc: doc in act and act[doc] or act.create(doc)
-        for attribute in _DOCBASES:
-            setattr(Activ, attribute, test_and_create(attribute))
-        """
+    def __setitem__(self, key, value):
+        if self.banco.contains(where('key') == key):
+            self.banco.update(dict(value=value), where('key') == key)
+        else:
+            self.banco.insert(dict(key=key, value=value))
 
-    def erase_database(self):
-        """erase tables"""
-        for table in _DOCBASES:
-            try:
-                del self[table]
-            except:
-                pass
+    def __getitem__(self, key):
+        return self.banco.search(where('key') == key)[0]['value']
+
+    def save(self, value):
+        key = str(uuid1())
+        self.banco.insert(dict(key=key, value=value))
+        return key
 
 
-#try:
-if True:
-    __ACTIV = Activ()
-    DRECORD = __ACTIV.keystore
-#except Exception:
-    #DRECORD = None
-
+def tests():
+    from tinydb.storages import MemoryStorage
+    b = Banco(lambda: TinyDB(storage=MemoryStorage))
+    b[1] = 2
+    assert b[1] == 2, "falhou em recuperar b[1]: %s" % str(b[1])
+    b[1] = 3
+    assert b[1] == 3, "falhou em recuperar b[1]: %s" % str(b[1])
+    c = b.save(4)
+    assert b[c] == 4, "falhou em recuperar b[1]: %s" % str(b[c])
 
 if __name__ == "__main__":
-    #print([rec for rec in DRECORD])
-    recs = {n: rec for n, rec in enumerate(DRECORD)}
-    print (recs)
-    ques = str(input("apaga?('apaga'/<indice>)"))
-    if ques == 'apaga':
-        __ACTIV.erase_database()
-    elif int(ques) in recs:
-        print (DRECORD[recs[int(ques)]])
+    tests()
+else:
+    DRECORD = Banco()

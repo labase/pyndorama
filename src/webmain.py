@@ -14,7 +14,7 @@ Pyndorama - Main
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
 from datetime import datetime
-from bottle import route, view, run, get, post, static_file, request
+from bottle import default_app, route, view, get, post, static_file, request, redirect
 import bottle
 import os
 import database
@@ -25,6 +25,25 @@ ADM, HEA, PEC, PHA, END = 'adm1n head peca fase fim'.split()
 #LIBS = DIR + '../libs/lib'
 IMGS = DIR + 'view/'
 
+DIR = os.path.dirname(__file__)+'/views'
+LAST = None
+PEC = "jogada"
+HEAD = "carta casa move tempo ponto valor".split()
+FAKE = [{k: 10*i+j for j, k in enumerate(HEAD)} for i in range(4)]
+
+
+def retrieve_data(req):
+    jdata = req['data']
+    print (jdata)
+    return json.loads(jdata)
+
+
+def retrieve_params(req):
+    print ('retrieve_params', req)
+    doc_id = req.pop('doc_id')
+    data = {k: req[k] for k in req}
+    print (doc_id, data)
+    return {doc_id: data}
 
 @route('/')
 @view(DIR+'view/index')
@@ -65,78 +84,67 @@ def stylecss(filename):
     return static_file(filename, root=DIR)
 
 
-def retrieve_data(req):
-    jdata = req['data']
-    print (jdata)
-    return json.loads(jdata)
+@get('/record/getid')
+def get_user_id_():
+    global LAST
+    gid = database.DRECORD.save({PEC:[]})
+    print('/record/getid', gid)
+    LAST = gid
+    return gid
 
 
-def retrieve_params(req):
-    doc_id = req.pop('doc_id')
-    data = {k: req[k] for k in req}
-    print (doc_id, data)
-    return {doc_id: data}
-
-
-@post('/load')
-@view(DIR+'meme')
-def store():
-    json = retrieve_params(request.params)
+@get('/pontos')
+@view('resultado')
+def score():
     try:
-        record_id = json.keys()[0]
-        print(json[record_id], record_id)
+        record_id = LAST
+        if record_id is None:
+            raise Exception()
+        print('resultado', record_id)
         record = database.DRECORD[record_id]
-        record[HEA] = json[record_id]
-        record[PEC] = []
-        record[PHA] = []
-        database.DRECORD[record_id] = record
-        print('record:', database.DRECORD[record_id])
-        return dict(doc_id=record_id)
+        record = record[PEC]
+        print('record resultado:', record)
+        return dict(user=record_id, result=record)
     except Exception:
-        return "Cabeçalho não foi gravado %s" % str(request.params.values())  # str([p for p in request.params])
+        #return dict(user="FAKE", result=FAKE)
+        fake = dict(user="FAKE", result=FAKE)
+        #print('score', fake)
+        return fake
 
 
-@post('/store')
+@post('/record/store')
 def read():
     try:
-        json = retrieve_data(request.params)
+        json = retrieve_params(request.params)
         record_id = json.keys()[0]
         record = database.DRECORD[record_id]
-        record[PEC] += [json[record_id]]
+        score = json[record_id]
+        print('record/store:', score, record)
+        score["tempo"] = str(datetime.now())
+        record[PEC] += [score]
+        print('record score:', score, record)
         database.DRECORD[record_id] = record
         return record
     except Exception:
         return "Movimento de peça não foi gravado %s" % str(request.params.values())
 
 
-@post('/record/phase')
-def record_phase():
+@post('/storage/<storename:re:.*')
+def store(storename):
     try:
-        json = retrieve_data(request.params)
-        record_id = json.keys()[0]
-        record = database.DRECORD[record_id]
-        record[PHA] += [json[record_id]]
+        record = database.DRECORD[storename]
+        score = json[record_id]
+        print('record/store:', score, record)
+        score["tempo"] = str(datetime.now())
+        record[PEC] += [score]
+        print('record score:', score, record)
         database.DRECORD[record_id] = record
         return record
     except Exception:
-        return "Fase dd jogo não foi gravado %s" % str(request.params.values())
+        return "Movimento de peça não foi gravado %s" % str(request.params.values())
 
-
-@post('/record/end')
-def record_end():
-    try:
-        json = retrieve_data(request.params)
-        record_id = json.keys()[0]
-        record = database.DRECORD[record_id]
-        record[END] = json[record_id]
-        database.DRECORD[record_id] = record
-        return record
-    except Exception:
-        return "Fim de jogo não foi gravado %s" % str(request.params.values())
-
+application = default_app()
 
 if __name__ == "__main__":
     #run(server='gunicorn', host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=True, workers=1)
     run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=True, workers=1)
-
-app = bottle.default_app()
