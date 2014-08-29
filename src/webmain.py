@@ -20,7 +20,6 @@ import os
 import database
 import json
 DIR = os.path.dirname(__file__)+'/'
-ADM, HEA, PEC, PHA, END = 'adm1n head peca fase fim'.split()
 
 #LIBS = DIR + '../libs/lib'
 IMGS = DIR + 'view/'
@@ -28,7 +27,7 @@ IMGS = DIR + 'view/'
 DIR = os.path.dirname(__file__)+'/views'
 LAST = None
 PEC = "jogada"
-HEAD = "carta casa move tempo ponto valor".split()
+HEAD = "marco casa move tempo ponto valor".split()
 FAKE = [{k: 10*i+j for j, k in enumerate(HEAD)} for i in range(4)]
 
 
@@ -45,6 +44,7 @@ def retrieve_params(req):
     print (doc_id, data)
     return {doc_id: data}
 
+
 @route('/')
 @view(DIR+'view/index')
 def main():
@@ -56,7 +56,7 @@ def main():
         return "Error in Database %s" % str([r for r in database.DRECORD])
         pass
 
-
+'''
 @get('/<filename:re:.*\.html>')
 def html(filename):
     return static_file(filename, root=DIR)
@@ -82,12 +82,13 @@ def imagepng(filename):
 def stylecss(filename):
     print(filename, IMGS)
     return static_file(filename, root=DIR)
+'''
 
 
 @get('/record/getid')
 def get_user_id_():
     global LAST
-    gid = database.DRECORD.save({PEC:[]})
+    gid = database.DRECORD.save({PEC: []})
     print('/record/getid', gid)
     LAST = gid
     return gid
@@ -113,7 +114,7 @@ def score():
 
 
 @post('/record/store')
-def read():
+def save():
     try:
         json = retrieve_params(request.params)
         record_id = json.keys()[0]
@@ -129,19 +130,23 @@ def read():
         return "Movimento de peça não foi gravado %s" % str(request.params.values())
 
 
-@post('/storage/<storename:re:.*')
+@post('/storage/jeppeto/persist__<storename:re:.*')
 def store(storename):
     try:
-        record = database.DRECORD[storename]
-        score = json[record_id]
-        print('record/store:', score, record)
-        score["tempo"] = str(datetime.now())
-        record[PEC] += [score]
-        print('record score:', score, record)
-        database.DRECORD[record_id] = record
-        return record
+        record = retrieve_data(request.params)
+        database.GRECORD[storename] = record
+        return dict(status=0, value="OK")
     except Exception:
-        return "Movimento de peça não foi gravado %s" % str(request.params.values())
+        return "Game não foi gravado %s" % str(request.params.values())
+
+
+@get('/storage/jeppeto/persist__<storename:re:.*')
+def load(storename):
+    try:
+        record = database.DRECORD[storename]
+        return dict(status=0, value=record)
+    except Exception:
+        return "Game não foi recuperado %s" % str(request.params.values())+"name: %s" % storename
 
 application = default_app()
 

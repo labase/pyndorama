@@ -18,7 +18,9 @@ from tinydb import TinyDB, where
 #from tinydb.storages import MemoryStorage
 from uuid import uuid1
 #DBM = lambda :TinyDB(storage=MemoryStorage)
-DBF = lambda: TinyDB('/home/cetoli/dev/dbs/voa.json')
+USER = 'carlo'
+DBF = lambda: TinyDB('/home/%s/dev/dbs/pdata.json' % USER)
+GBF = lambda: TinyDB('/home/%s/dev/dbs/pgame.json' % USER)
 
 
 class Banco:
@@ -54,3 +56,4 @@ if __name__ == "__main__":
     tests()
 else:
     DRECORD = Banco()
+    GRECORD = Banco(GBF)
