@@ -6,17 +6,16 @@ Pyndorama - Teste
 ############################################################
 
 :Author: *Carlo E. T. Oliveira*
-:Author: *Erica Nogueira*
 :Contact: carlo@nce.ufrj.br
-:Date: 2013/08/10
+:Date: 2014/09/02
 :Status: This is a "work in progress"
 :Revision: 0.1.0
 :Home: `Labase <http://labase.selfip.org/>`__
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
-
+"""
 import unittest
 #from json import dumps, loads
-from webmain import app
+from webmain import application
 from webtest import TestApp
 #from webob import Request, Response
 import database
@@ -33,19 +32,20 @@ class TestTime_Web(unittest.TestCase):
 
             def save(self, arg):
                 self['adm1n'].update(arg)
-                return 'adm1n', 0001
+                return 'adm1n'
 
         database.DRECORD = _Record(DRECORD)
-        self.app = TestApp(app)
+        database.GRECORD = _Record(DRECORD)
+        self.app = TestApp(application)
         pass
 
     def test_main(self):
-        "retorna o html do memit."
+        "retorna o html do jeppeto."
         result = self.app.get('/')
-        db = database.DRECORD['adm1n']
-        assert 'date'in db, 'no time in %s' % db
+        #db = database.DRECORD['adm1n']
+        #assert 'date'in db, 'no time in %s' % db
         assert result.status == '200 OK'
-        assert '">adm1n</div>' in result, 'no admin in %s' % result.body
+        assert '">umidqualquer</div>' in result.body, 'no admin in %s' % result.body
         pass
 
     def _est_lib(self):
@@ -55,7 +55,7 @@ class TestTime_Web(unittest.TestCase):
         assert 'brython.js www.brython.info' in result, 'no brython in %s' % result.body[:200]
         pass
 
-    def test_meme_py(self):
+    def _est_meme_py(self):
         "retorna o arquivo control.py."
         result = self.app.get('/control.py')
         assert result.status == '200 OK'
@@ -65,9 +65,10 @@ class TestTime_Web(unittest.TestCase):
     def _est_post_register(self):
         "registra o cabecalho do teste."
         #result = self.app.post('/record/head',dumps(DRECORD))
-        result = self.app.post_json('/record/head', DRECORD)
+        result = self.app.post_json('/storage/jeppeto/persist__/agame', dict(obj=1234))
         assert result.status == '200 OK'
-        assert 'it3m' in result, 'no admin in %s' % result.body
+        assert 'OK' in result.body, 'no admin in %s' % result.body
+        #assert
         pass
 
     def _est_post_piece(self):
@@ -81,4 +82,3 @@ class TestTime_Web(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-"""

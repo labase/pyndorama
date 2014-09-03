@@ -17,10 +17,12 @@ Pyndorama - Main - Pyany branch
 from tinydb import TinyDB, where
 #from tinydb.storages import MemoryStorage
 from uuid import uuid1
+from os.path import expanduser
+HOME = expanduser("~")
 #DBM = lambda :TinyDB(storage=MemoryStorage)
-USER = 'carlo'
-DBF = lambda: TinyDB('/home/%s/dev/dbs/pdata.json' % USER)
-GBF = lambda: TinyDB('/home/%s/dev/dbs/pgame.json' % USER)
+USER = 'ceto'
+DBF = lambda: TinyDB('%s/dev/dbs/pdata.json' % HOME)
+GBF = lambda: TinyDB('%s/dev/dbs/pgame.json' % HOME)
 
 
 class Banco:

@@ -24,7 +24,7 @@ DIR = os.path.dirname(__file__)+'/'
 #LIBS = DIR + '../libs/lib'
 IMGS = DIR + 'view/'
 
-DIR = os.path.dirname(__file__)+'/views'
+DIR = os.path.dirname(__file__)+'/view/'
 LAST = None
 PEC = "jogada"
 HEAD = "marco casa move tempo ponto valor".split()
@@ -46,7 +46,7 @@ def retrieve_params(req):
 
 
 @route('/')
-@view(DIR+'view/index')
+@view(DIR+'index.tpl')
 def main():
     try:
         #doc_id, doc_rev = database.DRECORD.save({'type': 'Pyndorama', 'date': str(datetime.now())})
