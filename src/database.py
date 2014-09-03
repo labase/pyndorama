@@ -36,7 +36,11 @@ class Banco:
             self.banco.insert(dict(key=key, value=value))
 
     def __getitem__(self, key):
-        return self.banco.search(where('key') == key)[0]['value']
+        #print ('Banco__getitem__', key, self.banco.contains(where('key') == key))
+        record = self.banco.get(where('key') == key)
+        if not isinstance(record, dict):
+            raise IndexError("No such key as: %s" % key)
+        return record['value']
 
     def save(self, value):
         key = str(uuid1())
@@ -53,6 +57,8 @@ def tests():
     assert b[1] == 3, "falhou em recuperar b[1]: %s" % str(b[1])
     c = b.save(4)
     assert b[c] == 4, "falhou em recuperar b[1]: %s" % str(b[c])
+    b['j_e_p_p_e_t__'] = []
+    assert b['j_e_p_p_e_t__o'] == [], "falhou em recuperar b[1]: %s" % str(b[c])
 
 if __name__ == "__main__":
     tests()

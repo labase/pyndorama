@@ -1,3 +1,4 @@
+tinydb
 argparse==1.2.1
 bottle==0.11.6
 distribute==0.6.24

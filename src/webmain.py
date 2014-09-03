@@ -32,7 +32,7 @@ FAKE = [{k: 10*i+j for j, k in enumerate(HEAD)} for i in range(4)]
 
 
 def retrieve_data(req):
-    jdata = req['data']
+    jdata = req.json['value']
     print (jdata)
     return json.loads(jdata)
 
@@ -127,26 +127,35 @@ def save():
         database.DRECORD[record_id] = record
         return record
     except Exception:
-        return "Movimento de peça não foi gravado %s" % str(request.params.values())
+        return "Movimento de peça não foi gravado %s" % str(request.params)
 
 
-@post('/storage/jeppeto/persist__<storename:re:.*')
+@post('/storage/jeppeto/persist__/<storename:re:.*>')
 def store(storename):
     try:
-        record = retrieve_data(request.params)
-        database.GRECORD[storename] = record
-        return dict(status=0, value="OK")
-    except Exception:
-        return "Game não foi gravado %s" % str(request.params.values())
+        record = request.json
+        database.GRECORD[storename] = record['value']
+        return dict(status=0, value=record)
+    except Exception as ex:
+        return dict(
+            status=500, value=
+            "Game não foi salvo %s" % str(request.json)
+            + " name: %s" % storename + " exception : %s" % ex + str(database.GRECORD))
 
 
-@get('/storage/jeppeto/persist__<storename:re:.*')
+@get('/storage/jeppeto/persist__/<storename:re:.*>')
 def load(storename):
     try:
-        record = database.DRECORD[storename]
+        #record = database.GRECORD[storename]
+        record = database.GRECORD[storename]
         return dict(status=0, value=record)
-    except Exception:
-        return "Game não foi recuperado %s" % str(request.params.values())+"name: %s" % storename
+    except IndexError as ex:
+        return dict(
+            status=500, value=
+            "Game não foi recuperado %s" % str(request.params.values())
+            + " name: %s" % storename + " exception : %s" % ex + str(database.GRECORD))
+
+#database.GRECORD["j_e_p_p_e_t__o"] = []
 
 application = default_app()
 

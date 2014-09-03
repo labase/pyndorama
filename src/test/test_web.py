@@ -14,33 +14,27 @@ Pyndorama - Teste
 :Copyright: 2013, `GPL <http://is.gd/3Udt>`__.
 """
 import unittest
-#from json import dumps, loads
+from json import dumps, loads
 from webmain import application
 from webtest import TestApp
 #from webob import Request, Response
 import database
-ITEM = 'it3m'
-ADM, HEA, PEC, PHA, END = 'adm1n head peca fase fim'.split()
-DRECORD = dict(adm1n=dict(name=ITEM, item_id=ITEM))
-#database.DRECORD = DRECORD
+from tinydb import TinyDB, where
+from tinydb.storages import MemoryStorage
 
 
 class TestTime_Web(unittest.TestCase):
+    GAMELIST = ['_JPT_game1', '_JPT_game2']
 
     def setUp(self):
-        class _Record(dict):
-
-            def save(self, arg):
-                self['adm1n'].update(arg)
-                return 'adm1n'
-
-        database.DRECORD = _Record(DRECORD)
-        database.GRECORD = _Record(DRECORD)
+        database.DRECORD = database.Banco(lambda: TinyDB(storage=MemoryStorage))
+        database.GRECORD = database.Banco(lambda: TinyDB(storage=MemoryStorage))
+        database.GRECORD["j_e_p_p_e_t_o__"] = []
         self.app = TestApp(application)
         pass
 
     def test_main(self):
-        "retorna o html do jeppeto."
+        """retorna o html do jeppeto."""
         result = self.app.get('/')
         #db = database.DRECORD['adm1n']
         #assert 'date'in db, 'no time in %s' % db
@@ -48,36 +42,31 @@ class TestTime_Web(unittest.TestCase):
         assert '">umidqualquer</div>' in result.body, 'no admin in %s' % result.body
         pass
 
-    def _est_lib(self):
-        "retorna a biblioteca brython."
-        result = self.app.get('/brython.js')
+    def test_load_empty_game_list(self):
+        """recupera lista de games vazia."""
+        result = self.app.get('/storage/jeppeto/persist__/j_e_p_p_e_t_o__')
         assert result.status == '200 OK'
-        assert 'brython.js www.brython.info' in result, 'no brython in %s' % result.body[:200]
-        pass
+        assert ': []' in result.body, 'no empty list value in %s' % result.body
 
-    def _est_meme_py(self):
-        "retorna o arquivo control.py."
-        result = self.app.get('/control.py')
+    def test_load_game_list(self):
+        """recupera lista de games."""
+        result = self._store_game_list()
+        result = self.app.get('/storage/jeppeto/persist__/j_e_p_p_e_t_o__')
         assert result.status == '200 OK'
-        assert 'Pyndorama - Principal' in result, 'no brython in %s' % result.body[:200]
-        pass
+        assert TestTime_Web.GAMELIST[0] in result.body, 'no game in game list: %s' % result.body
 
-    def _est_post_register(self):
-        "registra o cabecalho do teste."
-        #result = self.app.post('/record/head',dumps(DRECORD))
-        result = self.app.post_json('/storage/jeppeto/persist__/agame', dict(obj=1234))
-        assert result.status == '200 OK'
-        assert 'OK' in result.body, 'no admin in %s' % result.body
-        #assert
-        pass
+    def _store_game_list(self):
+        """salva lista de games GAMELIST."""
+        data = dict(_xsrf=1234, value=TestTime_Web.GAMELIST)
+        return self.app.post_json('/storage/jeppeto/persist__/j_e_p_p_e_t_o__', data)
 
-    def _est_post_piece(self):
-        "registra a colocacao de uma peca."
-        record = dict(adm1n=dict(pec=0, cas=0, tem=0))
-        result = self.app.post_json('/record/piece', record)
+    def test_store_game_list(self):
+        """salva lista de games GAMELIST."""
+        data = dict(_xsrf=1234, value=TestTime_Web.GAMELIST)
+        result = self._store_game_list()
         assert result.status == '200 OK'
-        assert 'pec' in result.body, 'no peca in %s' % result.body
-        pass
+        gamelist = database.GRECORD['j_e_p_p_e_t_o__']
+        assert TestTime_Web.GAMELIST[0] in gamelist, 'no games %s in game list: %s' % (result.body, gamelist)
 
 
 if __name__ == '__main__':
