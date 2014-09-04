@@ -20,6 +20,7 @@ import os
 import database
 import json
 DIR = os.path.dirname(__file__)+'/'
+IMG = DIR + "../img/"
 
 #LIBS = DIR + '../libs/lib'
 IMGS = DIR + 'view/'
@@ -56,6 +57,17 @@ def main():
         return "Error in Database %s" % str([r for r in database.DRECORD])
         pass
 
+
+@route('/:game#.jpt#')
+@view(DIR+'index.tpl')
+def game(game):
+    try:
+        doc_id = database.DRECORD.save({'game': game, 'date': str(datetime.now())})
+        return dict(doc_id=doc_id)
+    except Exception:
+        return "Error in Database %s" % str([r for r in database.DRECORD])
+        pass
+
 '''
 @get('/<filename:re:.*\.html>')
 def html(filename):
@@ -72,10 +84,6 @@ def html(filename):
 def python(filename):
     return static_file(filename, root=DIR)
 
-
-@get('/<filename:re:.*\.(jpg|png|gif|ico)>')
-def imagepng(filename):
-    return static_file(filename, root=DIR)
 
 
 @get('/<filename:re:.*\.css>')
@@ -113,6 +121,23 @@ def score():
         return fake
 
 
+@get('/irest/studio/:storename/:partype/<filename:re:.*\.(jpg|png|gif|ico)>')
+def imagepng(storename, partype, filename):
+    path = img = ""
+    try:
+        size = "n" if request.params['size'] == "N" else ""
+        path = IMG + storename + "/%s%s" % (partype, size)
+        if filename in os.listdir(path):
+            #raise Exception(path)
+            img = static_file(filename, root=path)
+        return img
+    except Exception as ex:
+        return dict(
+            status=500, value=
+            "img não foi recuperada %s" % str(request.params.values())
+            + " dir: %s" % path + " name: %s/%s" % (storename, filename) + " exception : %s" % ex)
+
+
 @post('/record/store')
 def save():
     try:
@@ -128,6 +153,21 @@ def save():
         return record
     except Exception:
         return "Movimento de peça não foi gravado %s" % str(request.params)
+
+
+@get('/rest/studio/<storename:re:[^/]+>')
+def image_list(storename):
+    path = ''
+    try:
+        sub_path = storename + "/%s" % request.params['type']
+        path = IMG + sub_path
+        files = ["%s/%s" % (sub_path, name) for name in os.listdir(path)]
+        return dict(status=0, value=files)
+    except Exception as ex:
+        return dict(
+            status=500, value=
+            "dir não foi recuperado %s" % str(request.params.values())
+            + " dir: %s" % path + " name: %s --" % storename + " exception : %s" % ex)
 
 
 @post('/storage/jeppeto/persist__/<storename:re:.*>')

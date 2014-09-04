@@ -23,8 +23,12 @@ from tinydb import TinyDB, where
 from tinydb.storages import MemoryStorage
 
 
-class TestTime_Web(unittest.TestCase):
+class TestPyndo_Web(unittest.TestCase):
     GAMELIST = ['_JPT_game1', '_JPT_game2']
+    STUDIO = "/rest/studio/%s?type=%d"
+    GAMEBUILD = [dict(obj='img', o_x=1, o_y=2), dict(obj='img', o_x=3, o_y=4)]
+    WEB_GAME = '/storage/jeppeto/persist__/%s' % '_JPT_game1'
+    MENUITEM = '/irest/studio/%s?size=N'
 
     def setUp(self):
         database.DRECORD = database.Banco(lambda: TinyDB(storage=MemoryStorage))
@@ -53,20 +57,62 @@ class TestTime_Web(unittest.TestCase):
         result = self._store_game_list()
         result = self.app.get('/storage/jeppeto/persist__/j_e_p_p_e_t_o__')
         assert result.status == '200 OK'
-        assert TestTime_Web.GAMELIST[0] in result.body, 'no game in game list: %s' % result.body
+        assert TestPyndo_Web.GAMELIST[0] in result.body, 'no game in game list: %s' % result.body
+
+    def test_load_prop_list(self):
+        """recupera lista de props."""
+        result = self.app.get(TestPyndo_Web.STUDIO % ('EICA', 1))
+        assert result.status == '200 OK'
+        assert 'Astro' in result.body, 'no prop in game list: %s' % result.body
+
+    def test_load_scene_list(self):
+        """recupera lista de cenários."""
+        result = self.app.get(TestPyndo_Web.STUDIO % ('EICA', 2))
+        assert result.status == '200 OK'
+        assert 'TIAE' in result.body, 'no prop in game list: %s' % result.body
+
+    def _store_game(self):
+        """salva game construído."""
+        data = dict(_xsrf=1234, value=TestPyndo_Web.GAMEBUILD)
+        url = TestPyndo_Web.WEB_GAME
+        return self.app.post_json(url, data)
 
     def _store_game_list(self):
         """salva lista de games GAMELIST."""
-        data = dict(_xsrf=1234, value=TestTime_Web.GAMELIST)
+        data = dict(_xsrf=1234, value=TestPyndo_Web.GAMELIST)
         return self.app.post_json('/storage/jeppeto/persist__/j_e_p_p_e_t_o__', data)
+
+    def test_load_game(self):
+        """recupera game construído."""
+        result = self._store_game()
+        url = TestPyndo_Web.WEB_GAME
+        result = self.app.get(url)
+        assert result.status == '200 OK'
+        for gamebuild in ["\"%s\": %s" % it for it in TestPyndo_Web.GAMEBUILD[0].items()][0]:
+            assert gamebuild in result.body, 'no gamebuild %s in retrieved game: %s' % (gamebuild, result.body)
+
+    def test_store_game(self):
+        """salva game construído."""
+        result = self._store_game()
+        assert result.status == '200 OK'
+        gamelist = database.GRECORD[TestPyndo_Web.GAMELIST[0]]
+        assert TestPyndo_Web.GAMEBUILD[0] in gamelist, 'no games %s in game list: %s' % (result.body, gamelist)
 
     def test_store_game_list(self):
         """salva lista de games GAMELIST."""
-        data = dict(_xsrf=1234, value=TestTime_Web.GAMELIST)
         result = self._store_game_list()
         assert result.status == '200 OK'
         gamelist = database.GRECORD['j_e_p_p_e_t_o__']
-        assert TestTime_Web.GAMELIST[0] in gamelist, 'no games %s in game list: %s' % (result.body, gamelist)
+        assert TestPyndo_Web.GAMELIST[0] in gamelist, 'no games %s in game list: %s' % (result.body, gamelist)
+
+    def test_load_image(self):
+        """recupera imagem."""
+        image = loads(self.app.get(TestPyndo_Web.STUDIO % ('EICA', 1)).body)
+        print image
+        url = TestPyndo_Web.MENUITEM % image['value'][0]
+        result = self.app.get(url)
+        assert result.status == '200 OK'
+        assert len(result.body) > 2000, 'no image in retrieved body: %s' % result.body
 
 
 if __name__ == '__main__':
