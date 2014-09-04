@@ -42,9 +42,10 @@ class Banco:
             raise IndexError("No such key as: %s" % key)
         return record['value']
 
-    def save(self, value):
-        key = str(uuid1())
-        self.banco.insert(dict(key=key, value=value))
+    def save(self, value, key=None, **kwargs):
+        key = key or str(uuid1())
+        items = dict(key=key, value=value).update(**kwargs)
+        self.banco.insert(items)
         return key
 
 

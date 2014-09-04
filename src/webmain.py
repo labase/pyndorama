@@ -34,15 +34,15 @@ FAKE = [{k: 10*i+j for j, k in enumerate(HEAD)} for i in range(4)]
 
 def retrieve_data(req):
     jdata = req.json['value']
-    print (jdata)
+    print(jdata)
     return json.loads(jdata)
 
 
 def retrieve_params(req):
-    print ('retrieve_params', req)
+    print('retrieve_params', req)
     doc_id = req.pop('doc_id')
     data = {k: req[k] for k in req}
-    print (doc_id, data)
+    print(doc_id, data)
     return {doc_id: data}
 
 
@@ -130,6 +130,8 @@ def imagepng(storename, partype, filename):
         if filename in os.listdir(path):
             #raise Exception(path)
             img = static_file(filename, root=path)
+        else:
+            raise IOError("Not found: %s in %s" % (filename, path))
         return img
     except Exception as ex:
         return dict(

@@ -108,7 +108,6 @@ class TestPyndo_Web(unittest.TestCase):
     def test_load_image(self):
         """recupera imagem."""
         image = loads(self.app.get(TestPyndo_Web.STUDIO % ('EICA', 1)).body)
-        print image
         url = TestPyndo_Web.MENUITEM % image['value'][0]
         result = self.app.get(url)
         assert result.status == '200 OK'

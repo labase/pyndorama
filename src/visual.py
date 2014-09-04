@@ -14,7 +14,7 @@ Pyndorama - Visual
 Visual module with HTML5 factory and declarative builder.
 0.1.8 Load save remote
 """
-ACTIV = "https://activufrj.nce.ufrj.br"
+ACTIV = ""  # "https://activufrj.nce.ufrj.br"
 SCENE = ACTIV + '/rest/studio/%s?size=G'
 TIMEOUT = 1  # seconds
 GROUP = 'EICA'
@@ -30,8 +30,8 @@ EICAP = ["jeppeto/Lutroforo.png", "jeppeto/Pacote.png", "jeppeto/Pote_com_bico_-
          "jeppeto/Ciprestes.png", "jeppeto/Gramineas.png", "jeppeto/Herbacea.png"]
 E_MENU = lambda item, ck="act_rubber": dict(
     o_Id=item, o_src=MENUITEM % item, s_padding='2px', o_click=ck, o_title=item)
-STUDIO = "https://activufrj.nce.ufrj.br/rest/studio/%s?type=%d"
-STORAGE = "https://activufrj.nce.ufrj.br/storage/%s/persist__/%s"
+STUDIO = ACTIV + "/rest/studio/%s?type=%d"
+STORAGE = ACTIV + "/storage/%s/persist__/%s"
 MENU_DEFAULT = ['ad_objeto', 'ad_cenario', 'wiki', 'navegar', 'jeppeto']
 MENU_PROP = ['apagar', 'configurar', 'pular', 'esconder', 'mostrar']
 MENU_BALAO = ['apagar', 'configurar', 'editar', 'pular', 'esconder', 'mostrar']
