@@ -73,14 +73,16 @@ class TestPyndo_Web(unittest.TestCase):
 
     def _store_game(self):
         """salva game construído."""
-        data = dict(_xsrf=1234, value=TestPyndo_Web.GAMEBUILD)
+        data = dict(_xsrf=1234, value=dumps(TestPyndo_Web.GAMEBUILD))
         url = TestPyndo_Web.WEB_GAME
-        return self.app.post_json(url, data)
+        return self.app.post(url, data)
+        #return self.app.post_json(url, data)
 
     def _store_game_list(self):
         """salva lista de games GAMELIST."""
-        data = dict(_xsrf=1234, value=TestPyndo_Web.GAMELIST)
-        return self.app.post_json('/storage/jeppeto/persist__/j_e_p_p_e_t_o__', data)
+        data = dict(_xsrf=1234, value=dumps(TestPyndo_Web.GAMELIST))
+        return self.app.post('/storage/jeppeto/persist__/j_e_p_p_e_t_o__', data)
+        #return self.app.post_json('/storage/jeppeto/persist__/j_e_p_p_e_t_o__', data)
 
     def test_load_game(self):
         """recupera game construído."""
@@ -95,7 +97,10 @@ class TestPyndo_Web(unittest.TestCase):
         """salva game construído."""
         result = self._store_game()
         assert result.status == '200 OK'
-        gamelist = database.GRECORD[TestPyndo_Web.GAMELIST[0]]
+        try:
+            gamelist = database.GRECORD[TestPyndo_Web.GAMELIST[0]]
+        except IndexError as ie:
+            assert False, ie
         assert TestPyndo_Web.GAMEBUILD[0] in gamelist, 'no games %s in game list: %s' % (result.body, gamelist)
 
     def test_store_game_list(self):

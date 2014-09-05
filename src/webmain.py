@@ -172,11 +172,24 @@ def image_list(storename):
             + " dir: %s" % path + " name: %s --" % storename + " exception : %s" % ex)
 
 
-@post('/storage/jeppeto/persist__/<storename:re:.*>')
-def store(storename):
+@post('/storage/jeppeto/jpersist__/<storename:re:.*>')
+def jsonstore(storename):
     try:
         record = request.json
         database.GRECORD[storename] = record['value']
+        return dict(status=0, value=record)
+    except Exception as ex:
+        return dict(
+            status=500, value=
+            "Game não foi salvo %s" % str(request.json)
+            + " name: %s" % storename + " exception : %s" % ex + str(database.GRECORD))
+
+
+@post('/storage/jeppeto/persist__/<storename:re:.*>')
+def store(storename):
+    try:
+        record = json.loads(request.params["value"])
+        database.GRECORD[storename] = record
         return dict(status=0, value=record)
     except Exception as ex:
         return dict(
