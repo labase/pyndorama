@@ -569,7 +569,8 @@ class Gui(GuiDraw):
             if commands['status'] != 0:
                 return not_read()
             #self.commands = commands['result']
-            cmds = self.commands = self.json.loads(commands['value'])
+            #cmds = self.commands = self.json.loads(commands['value'])
+            cmds = self.commands = commands['value']  # *PYANY* Version
             self.storage[game] = commands['value']
             games = self.json.loads(self.storage[JEPPETO])
             if not cmd in games:
