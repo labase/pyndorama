@@ -112,51 +112,7 @@ class TestPyndoramaFunctional(unittest.TestCase):
         database.GRECORD["j_e_p_p_e_t_o__"] = []
         database.GRECORD["_JPT_Jeppeto_0"] = JSON_LOADER
 
-    def _action_load(self):
-        """load an action."""
-        self.employ = MagicMock()
-        self.control.activate(self.employ, **L0)
-        self.control.activate(self.employ, **AM)
-        #self.gui['adm1n'] = {}
-        #self.control.activate(self.employ, **JEP0["JAC"])
-
-    def nest_action_load(self):  # todo: fix this test
-        """test load an action."""
-        COMP = [dict(AM), dict(L0)]
-        [i.update(o_place=None) for i in COMP]
-
-        def eff(**kwargs):
-            cmpr = COMP.pop()
-            assert kwargs == cmpr, 'but action were %s -AND- %s' % (kwargs, cmpr)
-
-        self._action_load()
-        print('self.control', self.control)
-        self.employ.side_effect = eff
-        self.employ.assert_called_once()
-        #assert self.gui['adm1n']["o_Id"] == "o1_jeppeto/ampu.png", 'no admin in %s' % self.gui['adm1n']
-        things = {'o1_jeppeto/ampu.png', 'o1_EICA/1_1c.jpg', 'o1_o1_EICA/1_1c.jpg'}
-        assert things <= set(self.control.ALL_THINGS.keys()), self.control.ALL_THINGS.keys()
-        assert len(self.control.items) == 1, 'Not one member in items %s' % self.control.items
-        assert self.control.current.o_Id == 'o1_EICA/1_1c.jpg', 'Not current locus %s' % self.control.current.o_Id
-        register_value = MagicMock(side_effect=lambda **k: eff(**k))
-        #COMP = AM
-        self.control.deploy(register_value)
-        register_value.assert_called_once()
-        pass
-
-    def _remote_load(self):
-        """fixture for loading from remote server."""
-        self.br.on_complete = lambda x: None
-        self.br.text = '{"status": 0, "value": "[\"GamesInteligentesII\",\"Jeppeto_1\",\"Jeppeto_0\"]"}'
-
-        def do_call():
-            self.br.on_complete(self.br)
-        self.br.set_timeout = self.br.set_header = MagicMock()
-        self.br.open = MagicMock(name='open')
-        self.br.send = MagicMock(name='send', side_effect=lambda x: do_call())
-        self.app.ajax = lambda: self.br  # MagicMock()
-
-    def nest_remove_game(self):
+    def test_remove_game(self):
         """remove a game locally and from remote server."""
         self.app.alert = MagicMock(name='alert')
         self.app.confirm = MagicMock(name='confirm', return_value=True)
@@ -175,46 +131,36 @@ class TestPyndoramaFunctional(unittest.TestCase):
         self.app.confirm.assert_called_once_with('Tem certeza que quer remover completamente NoNo ?')
         self.app.alert.assert_called_once_with('Arquivo Jeppeto_0 completamente removido com sucesso')
 
-    def test_remote_load(self):
-        """test load from remote server."""
+    def _remote_load(self, game):
+        """load from remote server."""
         self.app.storage = MagicMock(name="storage")
         self.app.storage.__setitem__ = MagicMock(name="setitem")  # , side_effect=store)
         self.app.storage.__getitem__ = MagicMock(name="getitem", return_value="[\"Jeppeto_0\"]")
-        self.app.doc = MagicMock(name="doc")
-        self.app.doc.__setitem__ = MagicMock(name="docsetitem")  # , side_effect=store)
-        self.app.doc.__getitem__ = MagicMock(name="docgetitem", return_value=self.app.doc)
-        self.app.load('Jeppeto_0')
+        dc = self.app.doc = MagicMock(name="doc")
+        self.docget = self.app.doc.__getitem__ = MagicMock(name="docgetitem", return_value=self.app.doc)
 
-    def nest_remote_load(self):
+    def test_remote_load(self):
         """test load from remote server."""
-
-        def store(x, y):
-            assert x == '_JPT_Jeppeto_1', 'but storage was %s %s' % (x, y)
-        self._remote_load()
-        self.br.status, self.br.text = 200, json.dumps(dict(status=0, value=JP0))
-        #self.app.load('_JPT_g0')
-        self.app.storage = MagicMock(name="storage")
-        self.app.storage.__setitem__ = MagicMock(name="setitem")  # , side_effect=store)
-        self.app.storage.__getitem__ = MagicMock(name="setitem", return_value="[\"Jeppeto_0\"]")
-        self.br['_JPT_Jeppeto_0'] = JP0
-        self._save_remote()
+        self._remote_load('Jeppeto_0')
         self.app.load('Jeppeto_0')
-        assert self.br.on_complete
-        self.br.open.assert_called_once_with('GET', LOAD, True)
-        self.br.send.assert_called_once_with({})
+        self.docget.assert_called_with('o1_EICA/1_1c.jpg')
         assert self.app.remote_games == [], 'but remote_games was %s' % self.app.remote_games
-        self.app.storage.__setitem__.assert_called_with(JEPPETO, '["Jeppeto_1", "Jeppeto_0"]')
-        self.app.storage.__setitem__.assert_any_call('_JPT_Jeppeto_1', ANY)
+        self.app.storage.__setitem__.assert_any_call('_JPT_Jeppeto_0', ANY)
 
-    def nest_no_remote_local_load(self):
+    def test_no_remote_local_load(self):
         """test load from local on remote server denial."""
-        self._remote_load()
-        self.app.storage = dict(_JPT_Jeppeto_1=json.dumps([LR]))
-        self.br.status, self.br.text = 404, json.dumps(dict(status=0, value=[LR]))
+        self._remote_load('Jeppeto_1')
+        self.app.storage = dict(_JPT_Jeppeto_1=json.dumps([LR]), j_e_p_p_e_t_o__="[]")
         self.app.load('Jeppeto_1')
-        assert self.br.on_complete
-        self.br.open.assert_called_once_with('GET', LOAD, True)
-        self.br.send.assert_called_once_with({})
+        self.br.status, self.br.text = 404, json.dumps(dict(status=0, value=[LR]))
+        self.docget.assert_called_with('book')
+        assert self.app.remote_games == [], 'but remote_games was %s' % self.app.remote_games
+
+    def _action_load(self):
+        """load an action."""
+        self.employ = MagicMock()
+        self.control.activate(self.employ, **L0)
+        self.control.activate(self.employ, **AM)
 
     def _save_remote(self):
         """save remote."""
@@ -234,8 +180,10 @@ class TestPyndoramaFunctional(unittest.TestCase):
         self.app.storage = MagicMock(name='store', side_effect=store_effect)
         self.app.remote_save()
 
-    def nest_save_remote(self):
+    def test_save_remote(self):
         """test save remote."""
+        assert not database.GRECORD["j_e_p_p_e_t_o__"],\
+            "game %s not in database: %s " % (self.app.game, database.GRECORD["j_e_p_p_e_t_o__"])
         self._save_remote()
         self.app.storage.__setitem__.assert_any_call(ANY, ANY)
         assert self.app.game in database.GRECORD["j_e_p_p_e_t_o__"],\
@@ -243,7 +191,7 @@ class TestPyndoramaFunctional(unittest.TestCase):
         assert "EICA/1_1c.jpg" in dumps(database.GRECORD["_JPT_Jeppeto_0"]),\
             "game %s not in database: %s " % (self.app.game, database.GRECORD["_JPT_Jeppeto_0"][0])
 
-    def nest_game_start(self):
+    def test_game_start(self):
         """test show start screen."""
         event = MagicMock(name='event')
         div_eff = MagicMock(name='div_effect')
@@ -268,14 +216,11 @@ class TestPyndoramaFunctional(unittest.TestCase):
                        s_fontFamily=0):
             assert o_Id in ids, 'but id was %s' % o_Id
             return div_eff
-        #self.app._remote_load = MagicMock(name='rl', side_effect=side_effect)
-        self.app.send = MagicMock(name='send', side_effect=side_effect)
         self.app.div = MagicMock(name='div', side_effect=div_effect)
         self.app.img = MagicMock(name='img')
         self.builder = Builder(self.br, self.control)
         self.builder.build_all(self.app)
         self.app.start(event)
-        self.app.send.assert_called_once()
         self.app.div.assert_called_any()
 
 if __name__ == '__main__':

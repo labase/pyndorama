@@ -559,13 +559,13 @@ class Gui(GuiDraw):
 
         def not_read(x=0, text=1):
             self.commands = self.json.loads(self.storage[game])
-            print('load not read:', x, text, game, self.commands)
+            print('visual load not read:', x, text, game, self.commands)
             for kwargs in self.commands:
                 render(**kwargs)
 
         def read(text):
             commands = self.json.loads(text)
-            print('load read:', commands)  # , text)
+            print('visual load read:', commands)  # , text)
             if commands['status'] != 0:
                 return not_read()
             #self.commands = commands['result']
